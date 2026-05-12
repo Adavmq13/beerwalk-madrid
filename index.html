@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#111111"/>
+<title>BeerWalk Madrid</title>
+<!-- PWA -->
+<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22BeerWalk%20Madrid%22%2C%22short_name%22%3A%22BeerWalk%22%2C%22description%22%3A%22Encuentra%20tu%20ruta%20craft%20en%20Madrid%22%2C%22start_url%22%3A%22%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23F7F7F5%22%2C%22theme_color%22%3A%22%23111111%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%2520viewBox%3D'0%200%20512%20512'%253E%253Crect%2520width%3D'512'%2520height%3D'512'%2520rx%3D'80'%2520fill%3D'%23111'%2F%253E%253Ctext%2520y%3D'.9em'%2520font-size%3D'400'%2520x%3D'50'%253E%25F0%259F%258D%25BA%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="BeerWalk"/>
+<meta name="application-name" content="BeerWalk Madrid"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet"/>
+<style>
+/* ── TOKENS ─────────────────────────────────── */
+:root{
+  --ink:#111111;
+  --ink-2:#374151;
+  --ink-3:#6B7280;
+  --ink-4:#9CA3AF;
+  --line:#E5E7EB;
+  --line-2:#F3F4F6;
+  --bg:#F7F7F5;
+  --wh:#FFFFFF;
+  --acc:#D97706;
+  --acc-l:#FEF3C7;
+  --acc-d:#B45309;
+  --gr:#16A34A;--gr-l:#DCFCE7;
+  --rd:#DC2626;--rd-l:#FEE2E2;
+  --pu:#5B21B6;--pu-l:#EDE9FE;
+  --sh-xs:0 1px 3px rgba(0,0,0,.07);
+  --sh-sm:0 2px 8px rgba(0,0,0,.08);
+  --sh-md:0 4px 16px rgba(0,0,0,.10);
+  --sh-lg:0 8px 32px rgba(0,0,0,.12);
+  --r:8px;--r-lg:14px;--r-xl:20px;--r-pill:999px;
+  --trans:.18s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:"DM Sans",-apple-system,sans-serif;overflow:hidden;color:var(--ink);background:var(--bg);}
+button,input{font-family:inherit;}
+
+/* ── MAP ────────────────────────────────────── */
+#map{position:fixed;inset:0;z-index:1;background:#f5f5f3;}
+.leaflet-control-zoom{display:none!important;}
+.leaflet-control-attribution{font-size:9px!important;opacity:.4;background:rgba(255,255,255,.7)!important;}
+
+/* ── HEADER ─────────────────────────────────── */
+#hdr{
+  position:fixed;top:10px;left:10px;right:10px;z-index:500;
+  background:var(--wh);
+  border-radius:var(--r-xl);
+  box-shadow:var(--sh-md);
+  overflow:hidden;
+}
+.hdr-row1{display:flex;align-items:center;gap:10px;padding:10px 14px 8px;}
+.logo{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.logo-mark{width:28px;height:28px;border-radius:7px;background:var(--ink);display:flex;align-items:center;justify-content:center;font-size:14px;}
+.logo-text{display:flex;flex-direction:column;line-height:1;}
+.logo-text .t1{font-size:12px;font-weight:700;color:var(--ink);letter-spacing:-0.02em;}
+.logo-text .t2{font-size:9px;font-weight:500;color:var(--ink-3);letter-spacing:.01em;margin-top:1px;}
+.hdr-srch{flex:1;display:flex;align-items:center;gap:7px;background:var(--line-2);border-radius:var(--r-pill);padding:7px 12px;cursor:text;}
+.hdr-srch svg{color:var(--ink-4);flex-shrink:0;}
+.hdr-srch input{border:none;background:transparent;font-size:12px;color:var(--ink);outline:none;width:100%;font-weight:500;}
+.hdr-srch input::placeholder{color:var(--ink-4);}
+.hdr-row2{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding:0 12px 10px;}
+.hdr-row2::-webkit-scrollbar{display:none;}
+.chip{flex-shrink:0;border:1px solid var(--line);background:var(--wh);color:var(--ink-3);border-radius:var(--r-pill);padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all var(--trans);white-space:nowrap;}
+.chip:hover{border-color:var(--ink-3);color:var(--ink);}
+.chip.on{background:var(--ink);color:var(--wh);border-color:var(--ink);}
+.chip.acc{background:var(--acc);color:var(--wh);border-color:var(--acc);}
+
+/* ── FLOATING UI ────────────────────────────── */
+#zoom{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:400;display:flex;flex-direction:column;gap:3px;}
+.zbtn{width:34px;height:34px;background:var(--wh);border:1px solid var(--line);border-radius:var(--r);font-size:18px;font-weight:300;color:var(--ink-2);box-shadow:var(--sh-xs);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all var(--trans);}
+.zbtn:hover{background:var(--line-2);}
+#counter{position:fixed;bottom:80px;left:10px;z-index:400;background:var(--wh);border-radius:var(--r-pill);box-shadow:var(--sh-sm);padding:7px 12px;font-size:12px;font-weight:600;color:var(--ink);}
+#counter em{color:var(--acc);font-style:normal;}
+#legend{position:fixed;bottom:80px;right:10px;z-index:400;background:var(--wh);border-radius:var(--r-lg);box-shadow:var(--sh-sm);padding:10px 12px;}
+.leg-t{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-4);margin-bottom:7px;}
+.leg-r{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:10px;font-weight:500;color:var(--ink-3);}
+.leg-r:last-child{margin-bottom:0;}
+.leg-d{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.leg-n{margin-left:auto;padding-left:8px;font-size:10px;font-weight:600;color:var(--ink-4);}
+
+/* ── PILLS ──────────────────────────────────── */
+.pills{position:fixed;bottom:14px;left:10px;right:10px;z-index:500;display:flex;gap:6px;justify-content:center;}
+.pill{border:none;border-radius:var(--r-pill);padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:-.01em;transition:all var(--trans);white-space:nowrap;}
+.pill-near{background:var(--acc);color:var(--wh);box-shadow:0 4px 18px rgba(217,119,6,.35);}
+.pill-route{background:var(--ink);color:var(--wh);box-shadow:0 4px 16px rgba(0,0,0,.25);}
+.pill-rec{background:var(--wh);color:var(--ink);border:1px solid var(--line);box-shadow:var(--sh-sm);}
+
+/* ── BOTTOM SHEET BASE ─────────────────────── */
+.sheet{
+  position:fixed;bottom:0;left:0;right:0;z-index:600;
+  background:var(--wh);
+  border-radius:var(--r-xl) var(--r-xl) 0 0;
+  box-shadow:0 -4px 24px rgba(0,0,0,.10);
+  transform:translateY(105%);
+  transition:transform .32s cubic-bezier(.32,0,.67,0);
+  max-height:88vh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.sheet.open{transform:translateY(0);}
+.sheet-handle{display:flex;justify-content:center;padding:10px 0 6px;position:sticky;top:0;background:var(--wh);z-index:1;}
+.sheet-handle-bar{width:32px;height:3px;border-radius:2px;background:var(--line);}
+
+/* ── BAR SHEET ──────────────────────────────── */
+#barSheet{z-index:620;}
+.bs-inner{padding:0 0 40px;}
+.bs-close{position:absolute;top:12px;right:14px;width:28px;height:28px;border-radius:50%;background:var(--line-2);border:none;font-size:13px;color:var(--ink-3);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.bs-head{padding:2px 16px 14px;}
+.bs-type{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;}
+.bs-name{font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-0.04em;line-height:1.2;margin-bottom:5px;overflow-wrap:break-word;}
+.bs-meta{font-size:13px;color:var(--ink-3);line-height:1.5;margin-bottom:5px;}
+.bs-loc{font-size:12px;color:var(--ink-4);display:flex;align-items:center;gap:4px;}
+.bs-divider{height:1px;background:var(--line-2);margin:14px 0;}
+.bs-section{padding:0 16px;}
+.bs-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-4);margin-bottom:8px;}
+.bs-score-row{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+.bs-score-num{font-size:26px;font-weight:800;color:var(--ink);letter-spacing:-0.05em;line-height:1;}
+.bs-score-num span{font-size:13px;font-weight:500;color:var(--ink-4);}
+.bs-score-right{flex:1;}
+.bs-score-lbl{font-size:12px;font-weight:700;margin-bottom:4px;}
+.bs-score-bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;}
+.bs-score-fill{height:100%;border-radius:2px;background:var(--acc);}
+.bs-score-why{font-size:11px;color:var(--ink-4);margin-top:5px;line-height:1.5;}
+.bs-rec{background:var(--line-2);border-radius:var(--r);padding:12px;margin-top:2px;}
+.bs-rec-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-4);margin-bottom:5px;}
+.bs-rec-txt{font-size:13px;color:var(--ink-2);line-height:1.6;}
+.bs-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.bs-tag{font-size:10px;font-weight:600;padding:3px 9px;border-radius:var(--r-pill);background:var(--line-2);color:var(--ink-3);border:1px solid var(--line);}
+.bs-tag.hi{background:var(--acc-l);color:var(--acc-d);border-color:transparent;}
+.bs-tag.gr{background:var(--gr-l);color:var(--gr);border-color:transparent;}
+.bs-info{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.bs-info-item .lbl{font-size:10px;font-weight:500;color:var(--ink-4);margin-bottom:2px;}
+.bs-info-item .val{font-size:13px;font-weight:600;color:var(--ink);}
+.bs-info-item .val.dim{font-weight:400;color:var(--ink-4);font-style:italic;}
+.bs-info-item .val a{color:var(--acc);text-decoration:none;}
+.bs-comm{border-top:1px solid var(--line-2);padding:14px 16px 0;}
+.bs-comm-q{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:10px;}
+.bs-comm-row{display:flex;gap:8px;margin-bottom:6px;}
+.vote-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--wh);border-radius:var(--r);padding:10px;font-size:13px;font-weight:600;color:var(--ink-3);cursor:pointer;transition:all var(--trans);}
+.vote-btn.up{background:var(--gr-l);border-color:var(--gr);color:var(--gr);}
+.vote-btn.dn{background:var(--rd-l);border-color:var(--rd);color:var(--rd);}
+.bs-comm-pct{font-size:11px;color:var(--ink-4);font-style:italic;}
+.bs-actions{padding:14px 16px 0;display:flex;flex-direction:column;gap:8px;}
+.act-primary{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--ink);color:var(--wh);border:none;border-radius:var(--r-lg);padding:14px;font-size:14px;font-weight:700;cursor:pointer;width:100%;transition:opacity var(--trans);}
+.act-primary:hover{opacity:.85;}
+.act-row{display:flex;gap:8px;}
+.act-sec{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--line);background:var(--wh);border-radius:var(--r);padding:11px 8px;font-size:12px;font-weight:600;color:var(--ink-2);cursor:pointer;transition:all var(--trans);}
+.act-sec:hover{background:var(--line-2);}
+.act-sec.acc{background:var(--acc);color:var(--wh);border-color:var(--acc);}
+.act-sec.done{background:var(--gr-l);color:var(--gr);border-color:transparent;}
+.act-sec.saved{color:var(--acc);}
+
+/* ── ROUTE OVERLAY ──────────────────────────── */
+#rteOverlay{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);display:none;align-items:flex-end;}
+#rteOverlay.on{display:flex;}
+#rteModal{width:100%;background:var(--wh);border-radius:var(--r-xl) var(--r-xl) 0 0;max-height:92vh;overflow-y:auto;padding-bottom:24px;}
+.rte-step{display:none;padding:4px 18px 24px;}.rte-step.on{display:block;}
+.rte-prog-bar{height:2px;background:var(--line);border-radius:1px;overflow:hidden;margin-bottom:16px;}
+.rte-prog-fill{height:100%;background:var(--acc);border-radius:1px;transition:width .4s ease;}
+.rte-step-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-4);margin-bottom:8px;}
+.rte-title{font-size:20px;font-weight:800;color:var(--ink);letter-spacing:-0.03em;line-height:1.2;margin-bottom:5px;}
+.rte-sub{font-size:13px;color:var(--ink-3);line-height:1.6;margin-bottom:18px;}
+#zone-map{height:200px;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line);margin-bottom:8px;}
+#zone-map.sel{border-color:var(--acc);}
+.zone-hint{font-size:11px;color:var(--ink-4);text-align:center;margin-bottom:14px;}
+.time-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;}
+.time-opt{border:1px solid var(--line);background:var(--wh);border-radius:var(--r-lg);padding:14px 12px;cursor:pointer;text-align:center;transition:all var(--trans);}
+.time-opt:hover{border-color:var(--ink-3);}
+.time-opt.on{border-color:var(--acc);background:var(--acc-l);}
+.time-ic{font-size:22px;margin-bottom:5px;}
+.time-lbl{font-size:13px;font-weight:700;color:var(--ink);}
+.time-sub{font-size:11px;color:var(--ink-4);margin-top:2px;}
+.pref-sec{margin-bottom:16px;}
+.pref-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-4);margin-bottom:8px;display:block;}
+.pref-opts{display:flex;gap:6px;flex-wrap:wrap;}
+.pref-opt{border:1px solid var(--line);background:var(--wh);border-radius:var(--r-pill);padding:7px 14px;font-size:12px;font-weight:600;color:var(--ink-3);cursor:pointer;transition:all var(--trans);}
+.pref-opt:hover{border-color:var(--ink-3);color:var(--ink);}
+.pref-opt.on{background:var(--ink);color:var(--wh);border-color:var(--ink);}
+.preset-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.preset-item{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:var(--r-lg);padding:12px 14px;cursor:pointer;transition:all var(--trans);}
+.preset-item:hover{border-color:var(--ink-3);}
+.preset-item.on{border-color:var(--acc);background:var(--acc-l);}
+.preset-item-ic{font-size:22px;flex-shrink:0;}
+.preset-item-name{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px;}
+.preset-item-desc{font-size:12px;color:var(--ink-3);}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--r-lg);padding:13px 16px;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:opacity var(--trans);}
+.btn:hover{opacity:.85;}
+.btn-ink{background:var(--ink);color:var(--wh);}
+.btn-acc{background:var(--acc);color:var(--wh);}
+.btn-ghost{background:var(--wh);color:var(--ink-2);border:1px solid var(--line);}
+.btn-ghost:hover{background:var(--line-2);}
+.btn-sm{padding:10px 14px;font-size:13px;border-radius:var(--r);}
+
+/* ── ROUTE RESULT ───────────────────────────── */
+#rteResult{position:fixed;bottom:0;left:0;right:0;z-index:650;background:var(--wh);border-radius:var(--r-xl) var(--r-xl) 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.10);transform:translateY(105%);transition:transform .32s cubic-bezier(.32,0,.67,0);max-height:62vh;overflow:hidden;display:flex;flex-direction:column;}
+#rteResult.open{transform:translateY(0);}
+.rr-head{padding:8px 16px 0;flex-shrink:0;}
+.rr-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin-bottom:4px;}
+.rr-title{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-0.03em;margin-bottom:3px;}
+.rr-meta{font-size:12px;color:var(--ink-3);margin-bottom:10px;}
+.rr-list{overflow-y:auto;flex:1;padding:0 16px 8px;}
+.rr-stop{display:flex;gap:10px;margin-bottom:12px;cursor:pointer;align-items:flex-start;}
+.rr-stop-num{width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--wh);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.rr-stop-info{flex:1;min-width:0;}
+.rr-stop-name{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rr-stop-meta{font-size:11px;color:var(--ink-4);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rr-stop-reason{font-size:11px;color:var(--ink-3);font-style:italic;line-height:1.4;}
+.rr-stop-walk{font-size:11px;color:var(--acc-d);margin-top:2px;}
+.rr-foot{padding:8px 16px 32px;flex-shrink:0;display:flex;gap:6px;}
+
+/* ── QUIZ ───────────────────────────────────── */
+#quizOverlay{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);display:none;align-items:flex-end;}
+#quizOverlay.on{display:flex;}
+#quizModal{width:100%;background:var(--wh);border-radius:var(--r-xl) var(--r-xl) 0 0;max-height:94vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,24px);}
+.quiz-prog-wrap{padding:0 16px 12px;}
+.quiz-prog-bar{height:2px;background:var(--line);border-radius:1px;overflow:hidden;margin-bottom:6px;}
+.quiz-prog-fill{height:100%;background:var(--acc);border-radius:1px;transition:width .35s ease;}
+.quiz-prog-meta{display:flex;justify-content:space-between;font-size:10px;font-weight:500;color:var(--ink-4);}
+.quiz-body{padding:4px 16px 24px;}
+.quiz-q{font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-0.03em;line-height:1.25;margin-bottom:4px;}
+.quiz-hint{font-size:13px;color:var(--ink-3);margin-bottom:16px;line-height:1.5;}
+.quiz-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:18px;}
+.quiz-opt{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:var(--r-lg);padding:12px 14px;cursor:pointer;transition:all var(--trans);background:var(--wh);}
+.quiz-opt:hover{border-color:var(--ink-3);}
+.quiz-opt.on{border-color:var(--acc);background:var(--acc-l);}
+.quiz-opt-ic{font-size:20px;width:36px;height:36px;border-radius:50%;background:var(--line-2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.quiz-opt.on .quiz-opt-ic{background:rgba(217,119,6,.15);}
+.quiz-opt-lbl{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:1px;}
+.quiz-opt-hint{font-size:11px;color:var(--ink-3);}
+.quiz-nav{display:flex;gap:8px;}
+.quiz-result{padding:4px 16px 28px;}
+.qr-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--acc);margin-bottom:12px;}
+.qr-hero{background:var(--ink);border-radius:var(--r-xl);padding:20px;margin-bottom:12px;color:var(--wh);}
+.qr-em{font-size:32px;margin-bottom:10px;display:block;}
+.qr-style{font-size:22px;font-weight:800;letter-spacing:-0.04em;line-height:1.1;margin-bottom:3px;}
+.qr-family{font-size:11px;color:rgba(255,255,255,.4);margin-bottom:14px;}
+.qr-stats{display:flex;gap:8px;background:rgba(255,255,255,.07);border-radius:var(--r);padding:10px;}
+.qr-stat{flex:1;text-align:center;}
+.qr-stat-l{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.35);margin-bottom:2px;}
+.qr-stat-v{font-size:14px;font-weight:700;color:var(--wh);}
+.qr-desc{font-size:13px;color:rgba(255,255,255,.65);line-height:1.6;margin-top:12px;}
+.qr-match{display:flex;align-items:center;gap:8px;background:rgba(217,119,6,.15);border-radius:var(--r);padding:10px 12px;margin-top:10px;}
+.qr-match-bar{flex:1;height:3px;background:rgba(255,255,255,.12);border-radius:2px;overflow:hidden;}
+.qr-match-fill{height:100%;background:var(--acc);border-radius:2px;}
+.qr-match-pct{font-size:12px;font-weight:700;color:var(--acc);flex-shrink:0;}
+.qr-flavors{background:var(--line-2);border-radius:var(--r);padding:12px;margin-bottom:12px;}
+.qr-flavors-l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-4);margin-bottom:4px;}
+.qr-flavors-t{font-size:13px;color:var(--ink-2);}
+.qr-alts-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-4);margin-bottom:8px;}
+.qr-alt{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:var(--r);padding:10px;margin-bottom:6px;}
+.qr-alt-ic{font-size:18px;width:34px;height:34px;border-radius:50%;background:var(--line-2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.qr-alt-name{font-size:13px;font-weight:700;color:var(--ink);}
+.qr-alt-meta{font-size:11px;color:var(--ink-4);}
+.qr-alt-pct{font-size:11px;font-weight:700;color:var(--acc);margin-left:auto;}
+.qr-bar-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--ink);color:var(--wh);border:none;border-radius:var(--r-lg);padding:14px;font-size:14px;font-weight:700;cursor:pointer;margin:14px 0 6px;}
+.qr-disc{font-size:10px;color:var(--ink-4);text-align:center;line-height:1.5;padding:10px 0 0;border-top:1px solid var(--line-2);}
+
+/* ── EMPTY / TOAST ──────────────────────────── */
+#emptyMsg{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:400;background:var(--wh);border-radius:var(--r-lg);box-shadow:var(--sh-md);padding:12px 16px;font-size:12px;color:var(--ink-3);text-align:center;max-width:260px;line-height:1.5;display:none;border:1px solid var(--line);}
+#emptyMsg.on{display:block;}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--ink);color:var(--wh);padding:9px 16px;border-radius:var(--r-pill);font-size:12px;font-weight:600;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;box-shadow:var(--sh-md);}
+#toast.on{opacity:1;}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<!-- HEADER -->
+<div id="hdr">
+  <div class="hdr-row1">
+    <div class="logo">
+      <div class="logo-mark">&#127866;</div>
+      <div class="logo-text">
+        <span class="t1">BeerWalk Madrid</span>
+        <span class="t2">Encuentra tu ruta craft</span>
+      </div>
+    </div>
+    <div class="hdr-srch" onclick="document.getElementById('srchIn').focus()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="srchIn" placeholder="Buscar barrio o local..."/>
+    </div>
+  </div>
+  <div class="hdr-row2" id="filterRow">
+    <button class="chip on" data-cat="" onclick="setTab(this,'')">Todos</button>
+    <button class="chip" data-cat="confirmed" onclick="setTab(this,'confirmed')">Bar craft</button>
+    <button class="chip" data-cat="brewpub" onclick="setTab(this,'brewpub')">Taprooms</button>
+    <button class="chip" data-cat="bottle" onclick="setTab(this,'bottle')">Tiendas</button>
+    <button class="chip" id="chRated" onclick="toggleChip(this,'rated')">&#11088; Con rating</button>
+    <button class="chip" id="chWeb" onclick="toggleChip(this,'web')">Con web</button>
+  </div>
+</div>
+
+<!-- BAR SHEET -->
+<div class="sheet" id="barSheet">
+  <div class="sheet-handle" onclick="closeSheet()"><div class="sheet-handle-bar"></div></div>
+  <div class="bs-inner">
+    <button class="bs-close" onclick="closeSheet()">&#10005;</button>
+    <div id="bsContent"></div>
+  </div>
+</div>
+
+<!-- ROUTE WIZARD -->
+<div id="rteOverlay" onclick="rteOverlayClick(event)">
+  <div id="rteModal">
+    <div class="sheet-handle"><div class="sheet-handle-bar"></div></div>
+    <div class="rte-step on" id="step0">
+      <div class="rte-prog-bar"><div class="rte-prog-fill" style="width:0%"></div></div>
+      <div class="rte-step-label">Tipo de ruta</div>
+      <div class="rte-title">&#191;C&#243;mo quieres tu ruta?</div>
+      <div class="rte-sub">Elige una ruta predefinida o personaliza cada detalle.</div>
+      <div class="preset-list" id="presetList"></div>
+      <button class="btn btn-ghost" style="width:100%" onclick="goStep(1)">&#9881;&#65039; Personalizar</button>
+    </div>
+    <div class="rte-step" id="step1">
+      <div class="rte-prog-bar"><div class="rte-prog-fill" style="width:33%"></div></div>
+      <div class="rte-step-label">Paso 1 de 3 &mdash; Zona</div>
+      <div class="rte-title">&#191;En qu&#233; zona quieres tu ruta?</div>
+      <div class="rte-sub">Buscaremos locales craft en un radio de 800 metros.</div>
+      <div id="zone-map"></div>
+      <div class="zone-hint" id="zoneHint">Toca el mapa para elegir zona</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" style="flex:.4" onclick="goStep(0)">&#8592; Volver</button>
+        <button class="btn btn-ink btn-sm" id="s1Next" style="flex:1;opacity:.4;pointer-events:none" onclick="goStep(2)">Siguiente &#8594;</button>
+      </div>
+    </div>
+    <div class="rte-step" id="step2">
+      <div class="rte-prog-bar"><div class="rte-prog-fill" style="width:66%"></div></div>
+      <div class="rte-step-label">Paso 2 de 3 &mdash; Tiempo</div>
+      <div class="rte-title">&#191;Cu&#225;nto tiempo tienes?</div>
+      <div class="rte-sub">Ajustaremos el n&#250;mero de paradas a tu disponibilidad.</div>
+      <div class="time-grid">
+        <div class="time-opt" onclick="selTime(this,1)"><div class="time-ic">&#9889;</div><div class="time-lbl">1 hora</div><div class="time-sub">2 paradas</div></div>
+        <div class="time-opt" onclick="selTime(this,2)"><div class="time-ic">&#128337;</div><div class="time-lbl">2 horas</div><div class="time-sub">3 paradas</div></div>
+        <div class="time-opt" onclick="selTime(this,3)"><div class="time-ic">&#127748;</div><div class="time-lbl">3 horas</div><div class="time-sub">4 paradas</div></div>
+        <div class="time-opt" onclick="selTime(this,5)"><div class="time-ic">&#127769;</div><div class="time-lbl">Toda la noche</div><div class="time-sub">5+ paradas</div></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" style="flex:.4" onclick="goStep(1)">&#8592; Volver</button>
+        <button class="btn btn-ink btn-sm" id="s2Next" style="flex:1;opacity:.4;pointer-events:none" onclick="goStep(3)">Siguiente &#8594;</button>
+      </div>
+    </div>
+    <div class="rte-step" id="step3">
+      <div class="rte-prog-bar"><div class="rte-prog-fill" style="width:100%"></div></div>
+      <div class="rte-step-label">Paso 3 de 3 &mdash; Preferencias</div>
+      <div class="rte-title">&#191;Qu&#233; tipo de locales?</div>
+      <div class="rte-sub">Opcionales. Cu&#225;nto m&#225;s especifiques, mejor la ruta.</div>
+      <div class="pref-sec"><span class="pref-lbl">Tipo de local</span>
+        <div class="pref-opts">
+          <button class="pref-opt" onclick="selPref('tipo','confirmed',this)">Bar craft</button>
+          <button class="pref-opt" onclick="selPref('tipo','brewpub',this)">Taproom</button>
+          <button class="pref-opt" onclick="selPref('tipo','bottle',this)">Tienda craft</button>
+          <button class="pref-opt" onclick="selPref('tipo','any',this)">Cualquiera</button>
+        </div>
+      </div>
+      <div class="pref-sec"><span class="pref-lbl">Rating m&#237;nimo</span>
+        <div class="pref-opts">
+          <button class="pref-opt" onclick="selPref('rating',0,this)">Sin m&#237;nimo</button>
+          <button class="pref-opt" onclick="selPref('rating',4.0,this)">4.0+</button>
+          <button class="pref-opt" onclick="selPref('rating',4.5,this)">4.5+</button>
+          <button class="pref-opt" onclick="selPref('rating',4.7,this)">4.7+ top</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-ghost btn-sm" style="flex:.4" onclick="goStep(2)">&#8592; Volver</button>
+        <button class="btn btn-acc" style="flex:1;border-radius:var(--r);padding:10px 14px;font-size:14px;font-weight:700;border:none;cursor:pointer" onclick="generateRoute()">Generar ruta &#10024;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROUTE RESULT -->
+<div id="rteResult">
+  <div class="rr-head">
+    <div class="sheet-handle" onclick="clearRoute()"><div class="sheet-handle-bar"></div></div>
+    <div class="rr-label">Tu ruta craft</div>
+    <div class="rr-title" id="rrTitle"></div>
+    <div class="rr-meta" id="rrMeta"></div>
+  </div>
+  <div class="rr-list" id="rrList"></div>
+  <div class="rr-foot">
+    <button class="btn btn-ghost btn-sm" onclick="clearRoute()">Cerrar</button>
+    <button class="btn btn-ghost btn-sm" onclick="shareRoute()">&#128279; Compartir</button>
+    <button class="btn btn-ink btn-sm" style="flex:1" onclick="openWizard()">Nueva ruta</button>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div id="quizOverlay" onclick="quizOverlayClick(event)">
+  <div id="quizModal">
+    <div class="sheet-handle"><div class="sheet-handle-bar"></div></div>
+    <div class="quiz-prog-wrap">
+      <div class="quiz-prog-bar"><div class="quiz-prog-fill" id="qPF" style="width:0%"></div></div>
+      <div class="quiz-prog-meta"><span id="qPL">Pregunta 1 de 7</span><span id="qPP">0%</span></div>
+    </div>
+    <div id="quizBody"></div>
+  </div>
+</div>
+
+<!-- FLOATING -->
+<div id="zoom">
+  <button class="zbtn" onclick="map.zoomIn()">+</button>
+  <button class="zbtn" onclick="map.zoomOut()">&#8722;</button>
+</div>
+<div id="counter">&#128344; <em id="cNum">0</em> locales</div>
+<div id="legend">
+  <div class="leg-t">Tipo de local</div>
+  <div class="leg-r"><div class="leg-d" style="background:#16A34A"></div>Bar craft<span class="leg-n" id="lN1">0</span></div>
+  <div class="leg-r"><div class="leg-d" style="background:#D97706"></div>Taproom<span class="leg-n" id="lN2">0</span></div>
+  <div class="leg-r"><div class="leg-d" style="background:#92400E"></div>Tienda<span class="leg-n" id="lN3">0</span></div>
+  <div class="leg-r"><div class="leg-d" style="background:#DC2626"></div>Pendiente<span class="leg-n" id="lN4">0</span></div>
+</div>
+<div id="emptyMsg">Sin locales en esta zona.<br><span style="color:var(--ink-4)">Toca otro punto del mapa.</span></div>
+<div class="pills">
+  <button class="pill pill-near" onclick="findNearby()">&#128205; Cerca</button>
+  <button class="pill pill-route" onclick="openWizard()">Crear ruta</button>
+  <button class="pill pill-rec" onclick="openQuiz()">&#127866; &#191;Qu&#233; cerveza?</button>
+</div>
+<div id="toast"></div>
+
+<!-- PWA Install Banner -->
+<div id="installBanner" style="position:fixed;bottom:80px;left:10px;right:10px;z-index:900;background:var(--ink);color:var(--wh);border-radius:var(--r-lg);padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh-lg);transform:translateY(120px);transition:transform .4s cubic-bezier(.32,0,.67,0);pointer-events:none;">
+  <span style="font-size:24px">&#127866;</span>
+  <div style="flex:1;min-width:0">
+    <div style="font-size:13px;font-weight:700;margin-bottom:2px">Instalar BeerWalk Madrid</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.5)">A&#241;ade la app a tu pantalla de inicio</div>
+  </div>
+  <button onclick="hideInstallBanner()" style="background:transparent;border:none;color:rgba(255,255,255,.4);font-size:18px;cursor:pointer;padding:4px">&#10005;</button>
+  <button onclick="installApp()" style="background:var(--acc);color:var(--wh);border:none;border-radius:var(--r-pill);padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Instalar</button>
+</div>
+<style>
+#installBanner.on{transform:translateY(0);pointer-events:auto;}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+var B=[{"id":1,"n":"Tapa Tapa Montera","ti":"Bar craft beer","ad":"C. de la Montera, 47, Centro, 28013 Madrid","we":"http://www.tapataparestaurant.com/","ph":"915 21 01 22","ra":4.6,"re":36722,"ca":"confirmed","la":40.419636,"lo":-3.701953,"gm":"https://maps.google.com/?cid=15000621827562042711"},{"id":2,"n":"Inclan Brutal Bar","ti":"Bar craft beer","ad":"C. de \u00c1lvarez Gato, 4, Centro, 28012 Madrid","we":"http://www.inclanbrutalbar.com/","ph":"910 23 80 38","ra":4.7,"re":19969,"ca":"confirmed","la":40.415062,"lo":-3.701913,"gm":"https://maps.google.com/?cid=5481266792486401370"},{"id":3,"n":"Cocteler\u00eda Salmon Guru","ti":"Bar craft beer","ad":"Calle de Echegaray, 21, Centro, 28014 Madrid","we":"https://www.salmonguru.es/","ph":"","ra":4.6,"re":4801,"ca":"confirmed","la":40.414893,"lo":-3.69952,"gm":"https://maps.google.com/?cid=17165798431339246262"},{"id":4,"n":"La Can\u00edbal | Cerveza artesanal y vino natural","ti":"Brewpub","ad":"C. de Argumosa, 28, Centro, 28012 Madrid","we":"http://www.lacanibal.com/","ph":"915 39 60 57","ra":4.3,"re":4330,"ca":"brewpub","la":40.407559,"lo":-3.696533,"gm":"https://maps.google.com/?cid=14070387453715317367"},{"id":5,"n":"Pez Tortilla","ti":"Brewpub","ad":"C. de la Cava Baja, 42, Centro, 28005 Madrid","we":"https://peztortilla.com/","ph":"","ra":4.4,"re":4293,"ca":"brewpub","la":40.411847,"lo":-3.710522,"gm":"https://maps.google.com/?cid=16066482267958453695"},{"id":6,"n":"Beer Station","ti":"Brewpub","ad":"Cuesta de Sto. Domingo, 22, Centro, 28013 Madrid","we":"http://www.beerstation.com/","ph":"915 47 27 48","ra":4.4,"re":4135,"ca":"brewpub","la":40.419687,"lo":-3.70848,"gm":"https://maps.google.com/?cid=10066421821586178848"},{"id":7,"n":"DIVORARE l Focaccia Madrid","ti":"Bottle shop / tienda de cerveza","ad":"C. de Augusto Figueroa, 20, Centro, 28004 Madrid","we":"https://www.divorare.com/","ph":"910 26 33 29","ra":4.8,"re":4046,"ca":"bottle","la":40.422221,"lo":-3.698102,"gm":"https://maps.google.com/?cid=8958533070836750690"},{"id":8,"n":"Cervecer\u00eda Alemana","ti":"Brewpub","ad":"Pl. de Sta. Ana, 6, Centro, 28012 Madrid","we":"http://www.cerveceriaalemana.com/","ph":"914 29 70 33","ra":3.9,"re":3290,"ca":"brewpub","la":40.414473,"lo":-3.700342,"gm":"https://maps.google.com/?cid=3499370470244140753"},{"id":9,"n":"Brew Wild Pizza Bar","ti":"Brewpub","ad":"Calle de Echegaray, 23, Centro, 28014 Madrid","we":"https://www.brewwildpizzabar.com/","ph":"913 48 35 86","ra":4.7,"re":3262,"ca":"brewpub","la":40.414818,"lo":-3.699511,"gm":"https://maps.google.com/?cid=809274113054101258"},{"id":10,"n":"La Tape - Restaurante y Cervezas Artesanales","ti":"Brewpub","ad":"cruce con Manuela Malasa\u00f1a, C. de San Bernardo, 88, Centro, 28015 Madrid","we":"https://www.latape.com/","ph":"915 93 04 22","ra":4.3,"re":3194,"ca":"brewpub","la":40.42882,"lo":-3.705883,"gm":"https://maps.google.com/?cid=8017914565693027167"},{"id":11,"n":"Cervecer\u00eda L'Europe","ti":"Brewpub","ad":"C. del Cardenal Cisneros, 19, Chamber\u00ed, 28010 Madrid","we":"http://www.cerveceriaeuropa.com/","ph":"915 93 96 91","ra":4.4,"re":3007,"ca":"brewpub","la":40.43055,"lo":-3.701898,"gm":"https://maps.google.com/?cid=8521112451425128908"},{"id":12,"n":"Hopper","ti":"Bar craft beer","ad":"C. de la Cava Baja, 40, Centro, 28005 Madrid","we":"https://instagram.com/hopper.madrid?igshid=MzRlODBiNWFlZA==","ph":"910 51 51 99","ra":4.7,"re":2989,"ca":"confirmed","la":40.411954,"lo":-3.710262,"gm":"https://maps.google.com/?cid=14594946377060792397"},{"id":13,"n":"VinoPremier","ti":"Bottle shop / tienda de cerveza","ad":"C/ de Francisco Silvela, 25, Salamanca, 28028 Madrid","we":"http://www.vinopremier.com/","ph":"918 62 66 06","ra":4.5,"re":2913,"ca":"bottle","la":40.4311,"lo":-3.671582,"gm":"https://maps.google.com/?cid=9939200701732010992"},{"id":14,"n":"La Casa de La Cerveza","ti":"Bottle shop / tienda de cerveza","ad":"Calle de Juan Bravo, 64, Salamanca, 28006 Madrid","we":"http://www.lacasadelacerveza.com/","ph":"914 01 90 68","ra":4.0,"re":2853,"ca":"bottle","la":40.432183,"lo":-3.673294,"gm":"https://maps.google.com/?cid=2770433470328241688"},{"id":15,"n":"Casa Gonz\u00e1lez","ti":"Bottle shop / tienda de cerveza","ad":"C. del Le\u00f3n, 12, Centro, 28014 Madrid","we":"https://casagonzalez.madrid/","ph":"914 29 56 18","ra":4.6,"re":2788,"ca":"bottle","la":40.414032,"lo":-3.698952,"gm":"https://maps.google.com/?cid=8563962755142144770"},{"id":16,"n":"Cervezas Patanel","ti":"Brewpub","ad":"Av. de Pedro Diez, 21D, Carabanchel, 28019 Madrid","we":"https://cervezaspatanel.com/","ph":"644 70 19 97","ra":4.7,"re":2504,"ca":"brewpub","la":40.39141,"lo":-3.73153,"gm":"https://maps.google.com/?cid=4700957505813365809"},{"id":17,"n":"FOGG BAR","ti":"Brewpub","ad":"Pl. de los Reyes Magos, 6, Retiro, 28007 Madrid","we":"http://foggbar.es/","ph":"912 83 60 26","ra":4.6,"re":2473,"ca":"brewpub","la":40.408062,"lo":-3.676486,"gm":"https://maps.google.com/?cid=2252839595692260157"},{"id":18,"n":"Cervezas La Virgen X-Madrid","ti":"Brewpub","ad":"C. Oslo, 53, Centro comercial XMadrid, 28922 Alcorc\u00f3n, Madrid","we":"","ph":"644 28 23 92","ra":4.2,"re":2398,"ca":"brewpub","la":40.34096,"lo":-3.847821,"gm":"https://maps.google.com/?cid=2225753840898895719"},{"id":19,"n":"The Toast Taproom","ti":"Taproom","ad":"C. de San Vicente Ferrer, 33, Centro, 28004 Madrid","we":"","ph":"915 32 67 91","ra":4.4,"re":2329,"ca":"brewpub","la":40.425773,"lo":-3.704361,"gm":"https://maps.google.com/?cid=13711064966072163858"},{"id":20,"n":"Taproom Madrid","ti":"Taproom","ad":"C. de Guzm\u00e1n el Bueno, 52, Chamber\u00ed, 28015 Madrid","we":"https://taproommadrid.com/","ph":"910 05 39 68","ra":4.5,"re":1958,"ca":"brewpub","la":40.436055,"lo":-3.712951,"gm":"https://maps.google.com/?cid=12732386561422094789"},{"id":21,"n":"Craft 19","ti":"Bar craft beer","ad":"Mercado Vallehermoso, C. de Vallehermoso, 36, Chamber\u00ed, 28015 Madrid","we":"https://craft19.com/es/ubicacion/craft-19-slow-food-slow-beer-madrid-11104","ph":"919 99 31 76","ra":3.8,"re":1910,"ca":"confirmed","la":40.434102,"lo":-3.708294,"gm":"https://maps.google.com/?cid=4213357926695067983"},{"id":22,"n":"Bad Company 1920","ti":"Bar craft beer","ad":"C de Miguel Moya 8, Puerta de Madera, 1920, Centro, 28004 Madrid","we":"https://www.instagram.com/badcompany_1920/","ph":"","ra":4.8,"re":1879,"ca":"confirmed","la":40.421003,"lo":-3.705543,"gm":"https://maps.google.com/?cid=13591552097638451535"},{"id":23,"n":"La Mayor Cervecer\u00eda (Madrid)","ti":"Brewpub","ad":"Calle Mayor, 77, Centro, 28013 Madrid","we":"http://cervecerialamayor.com/","ph":"911 30 24 35","ra":4.6,"re":1812,"ca":"brewpub","la":40.415066,"lo":-3.712114,"gm":"https://maps.google.com/?cid=2266014014386287193"},{"id":24,"n":"Cervecer\u00eda Santa Ana.","ti":"Bar craft beer","ad":"Pl. de Sta. Ana, 10, Centro, 28012 Madrid","we":"https://cerveceriasantaana.com/","ph":"914 29 36 35","ra":3.6,"re":1765,"ca":"confirmed","la":40.414389,"lo":-3.70093,"gm":"https://maps.google.com/?cid=4131045882898043806"},{"id":25,"n":"The One Beer","ti":"Brewpub","ad":"C. Calidad, 50, Poligono Industrial los Olivos, 28906 Getafe, Madrid","we":"http://www.onebeer.es/","ph":"680 42 96 24","ra":4.9,"re":1695,"ca":"brewpub","la":40.313596,"lo":-3.686028,"gm":"https://maps.google.com/?cid=4102766865159856147"},{"id":26,"n":"Restaurante Kr\u00fcger. Cerveceria Alemana Centro de Madrid","ti":"Brewpub","ad":"C/Princesa, 5, Plaza de los Cubos, semis\u00f3tano, Moncloa - Aravaca, 28008 Madrid","we":"http://www.restaurantekruger.com/","ph":"915 48 47 97","ra":4.1,"re":1651,"ca":"brewpub","la":40.425053,"lo":-3.712811,"gm":"https://maps.google.com/?cid=1259702348325293015"},{"id":27,"n":"La Can\u00edbal - F\u00e1brica de cervezas","ti":"Brewpub","ad":"C. de Juli\u00e1n Camarillo, 19, San Blas-Canillejas, 28037 Madrid","we":"https://lacanibal.com/la-fabrica/","ph":"914 40 23 95","ra":4.4,"re":1644,"ca":"brewpub","la":40.435068,"lo":-3.631319,"gm":"https://maps.google.com/?cid=13974524010555317625"},{"id":28,"n":"Cervecer\u00eda Polar","ti":"Brewpub","ad":"C. de Olite, 43, Tetu\u00e1n, 28039 Madrid","we":"http://www.cerveceriapolar.es/","ph":"913 11 08 17","ra":4.7,"re":1634,"ca":"brewpub","la":40.452327,"lo":-3.707085,"gm":"https://maps.google.com/?cid=8606892711575639722"},{"id":29,"n":"Cervecer\u00eda Oldenburg","ti":"Brewpub","ad":"Calle de Hartzenbusch, 12, Chamber\u00ed, 28010 Madrid","we":"https://bit.ly/3kPq92k","ph":"914 48 23 41","ra":4.5,"re":1544,"ca":"brewpub","la":40.430386,"lo":-3.701667,"gm":"https://maps.google.com/?cid=7105001834903281209"},{"id":30,"n":"Bodega Salvaje","ti":"Brewpub","ad":"C. de Jaime el Conquistador, 25, Arganzuela, 28045 Madrid","we":"","ph":"","ra":4.5,"re":1494,"ca":"brewpub","la":40.395544,"lo":-3.69812,"gm":"https://maps.google.com/?cid=6542893327284330151"},{"id":31,"n":"La Maripepa Cervecer\u00eda","ti":"Brewpub","ad":"C. de Jes\u00fas, 7, Centro, 28014 Madrid","we":"https://www.lamaripepa.com/","ph":"912 50 45 07","ra":4.4,"re":1423,"ca":"brewpub","la":40.41269,"lo":-3.69553,"gm":"https://maps.google.com/?cid=11305544868313528471"},{"id":32,"n":"Cervecer\u00eda Alqu\u00edtara","ti":"Brewpub","ad":"C. de Villacarlos, 16, Vic\u00e1lvaro, 28032 Madrid","we":"","ph":"624 14 61 01","ra":4.6,"re":1344,"ca":"brewpub","la":40.406,"lo":-3.605925,"gm":"https://maps.google.com/?cid=2683859799802761960"},{"id":33,"n":"Spoiler Bar","ti":"Bar craft beer","ad":"C. de Rafael de Riego, 25, Arganzuela, 28045 Madrid","we":"https://spoilerbarmadrid.com/","ph":"910 17 62 54","ra":4.5,"re":1252,"ca":"confirmed","la":40.402628,"lo":-3.692155,"gm":"https://maps.google.com/?cid=2969346827625672048"},{"id":34,"n":"BEE BEER Chueca | Craft Beer Bar y Catas","ti":"Brewpub","ad":"C. de Augusto Figueroa, 30, Centro, 28004 Madrid","we":"https://beebeer.es/","ph":"911 29 69 55","ra":4.6,"re":1235,"ca":"brewpub","la":40.421977,"lo":-3.696916,"gm":"https://maps.google.com/?cid=4377177024181809081"},{"id":35,"n":"Bandida Tapas & Cocktail Bar","ti":"Bar craft beer","ad":"C. de la Cruz, 8, Centro, 28012 Madrid","we":"https://bandidamadrid.com/","ph":"689 76 87 37","ra":4.8,"re":1155,"ca":"confirmed","la":40.416088,"lo":-3.70124,"gm":"https://maps.google.com/?cid=9980515793184237721"},{"id":36,"n":"Compa\u00f1\u00eda de Cervezas Valle del Kahs","ti":"Brewpub","ad":"C. Enrique Velasco, 21, Puente de Vallecas, 28038 Madrid","we":"http://ccvk.beer/","ph":"629 86 60 19","ra":4.7,"re":1108,"ca":"brewpub","la":40.395969,"lo":-3.661259,"gm":"https://maps.google.com/?cid=2004442908606282028"},{"id":37,"n":"F\u00e1brica Excepcional - Cervecer\u00eda","ti":"Brewpub","ad":"Centro de, C. de Valverde, 29, Centro, Centro, 28004 Madrid","we":"http://www.fmaravillas.com/","ph":"915 21 87 53","ra":4.3,"re":1074,"ca":"brewpub","la":40.422658,"lo":-3.701735,"gm":"https://maps.google.com/?cid=12423544570828279921"},{"id":38,"n":"Cuatro Gatos Cerveceria","ti":"Bar craft beer","ad":"C. del Salvador, 4, Centro, 28012 Madrid","we":"http://barcuatrogatos.com/","ph":"913 40 71 25","ra":4.6,"re":1063,"ca":"confirmed","la":40.414327,"lo":-3.706433,"gm":"https://maps.google.com/?cid=3708696689299020070"},{"id":39,"n":"Cerveceria Internacional Norwich","ti":"Brewpub","ad":"C. de la Marroquina, 38, Moratalaz, 28030 Madrid","we":"https://sren.top/brewery-norwich-international","ph":"601 06 94 55","ra":4.3,"re":1042,"ca":"brewpub","la":40.407825,"lo":-3.647755,"gm":"https://maps.google.com/?cid=1620113955463399424"},{"id":40,"n":"BEE BEER Debod | Craft Beer Bar y Catas","ti":"Brewpub","ad":"C. de Ferraz, 10, Moncloa - Aravaca, 28008 Madrid","we":"https://beebeer.es/bee-beer-debod/","ph":"912 51 61 14","ra":4.6,"re":1032,"ca":"brewpub","la":40.424126,"lo":-3.715013,"gm":"https://maps.google.com/?cid=12681932357030551006"},{"id":41,"n":"Cervecer\u00eda La Abuela","ti":"Brewpub","ad":"C. de Espoz y Mina, 28, Centro, 28012 Madrid","we":"","ph":"915 22 79 50","ra":3.7,"re":1027,"ca":"brewpub","la":40.415188,"lo":-3.702009,"gm":"https://maps.google.com/?cid=4290600932588879741"},{"id":42,"n":"Beerhouse","ti":"Brewpub","ad":"C. del Cardenal Cisneros, 16, Chamber\u00ed, 28010 Madrid","we":"https://beerhouse.es/","ph":"648 86 99 07","ra":4.5,"re":1009,"ca":"brewpub","la":40.430585,"lo":-3.701716,"gm":"https://maps.google.com/?cid=5256839721202252701"},{"id":43,"n":"Moraima Lonja","ti":"Brewpub","ad":"C. de la Marroquina, 10, posterior, Moratalaz, 28030 Madrid","we":"https://cerveceriasmoraima.com/","ph":"646 12 74 40","ra":4.4,"re":974,"ca":"brewpub","la":40.406897,"lo":-3.650332,"gm":"https://maps.google.com/?cid=10079479824399429086"},{"id":44,"n":"Twist & Shout Bar","ti":"Bar craft beer","ad":"C. de San Bartolom\u00e9, 22, Centro, 28004 Madrid","we":"https://www.twistandshout.bar/","ph":"691 10 22 35","ra":4.6,"re":930,"ca":"confirmed","la":40.422152,"lo":-3.69829,"gm":"https://maps.google.com/?cid=656591650489203650"},{"id":45,"n":"Specia Atelier Bar","ti":"Bottle shop / tienda de cerveza","ad":"C. de las Infantas, 17, Centro, 28004 Madrid","we":"","ph":"627 61 54 77","ra":4.7,"re":906,"ca":"bottle","la":40.420412,"lo":-3.698457,"gm":"https://maps.google.com/?cid=1185022890500590623"},{"id":46,"n":"Moraima Vinateros","ti":"Brewpub","ad":"C. del Camino de los Vinateros, 40, Moratalaz, 28030 Madrid","we":"http://cerveceriasmoraima.com/","ph":"919 21 59 38","ra":4.4,"re":900,"ca":"brewpub","la":40.410429,"lo":-3.654935,"gm":"https://maps.google.com/?cid=15049359948192546501"},{"id":47,"n":"mas que cervezas","ti":"Brewpub","ad":"C. del Le\u00f3n, 32, Centro, 28014 Madrid","we":"http://www.masquecervezas.es/","ph":"910 16 41 31","ra":4.8,"re":889,"ca":"brewpub","la":40.412809,"lo":-3.699429,"gm":"https://maps.google.com/?cid=6525216857143783706"},{"id":48,"n":"Wanderlust Bar","ti":"Bar craft beer","ad":"C. del Bonetillo, 14, Centro, 28013 Madrid","we":"https://barwanderlust.com/","ph":"665 46 59 31","ra":4.6,"re":876,"ca":"confirmed","la":40.416842,"lo":-3.709141,"gm":"https://maps.google.com/?cid=1389352215120552536"},{"id":49,"n":"Starbeers","ti":"Brewpub","ad":"C. del Almendro, 8, Centro, 28005 Madrid","we":"https://www.instagram.com/starbeerslatina/?hl=es","ph":"914 02 93 85","ra":4.6,"re":797,"ca":"brewpub","la":40.412861,"lo":-3.709549,"gm":"https://maps.google.com/?cid=15742949802877446022"},{"id":50,"n":"Bar \"Menuda History\"","ti":"Brewpub","ad":"C. de los Reyes, 6, Centro, 28015 Madrid","we":"https://www.facebook.com/pg/Menuda-History-497215440463257/about/?ref=page_internal","ph":"916 68 49 61","ra":4.8,"re":758,"ca":"brewpub","la":40.424276,"lo":-3.709321,"gm":"https://maps.google.com/?cid=9472298118454601822"},{"id":51,"n":"Beer Spa Madrid","ti":"Pendiente de revisi\u00f3n","ad":"C. de San Isidro Labrador, 10, Centro, 28005 Madrid","we":"https://beerspain.com/spa/beer-spa-madrid/","ph":"624 11 79 06","ra":4.9,"re":745,"ca":"pending","la":40.410564,"lo":-3.712806,"gm":"https://maps.google.com/?cid=15221259024411723799"},{"id":52,"n":"Cervecer\u00eda Thomas","ti":"Pendiente de revisi\u00f3n","ad":"C. de Rufino Blanco, 8, Salamanca, 28028 Madrid","we":"","ph":"914 59 89 04","ra":4.6,"re":731,"ca":"pending","la":40.42778,"lo":-3.66648,"gm":"https://maps.google.com/?cid=9215446760447972620"},{"id":53,"n":"Beer Joint Madrid","ti":"Taproom","ad":"C. de Rodas, 9, Centro, 28005 Madrid","we":"","ph":"","ra":4.8,"re":683,"ca":"brewpub","la":40.408345,"lo":-3.705767,"gm":"https://maps.google.com/?cid=4306560632349895520"},{"id":54,"n":"Cervecer\u00eda Baden Baden","ti":"Brewpub","ad":"C. Germ\u00e1n P\u00e9rez Carrasco, 51, Cdad. Lineal, 28027 Madrid","we":"http://www.elbaden.com/","ph":"914 08 37 14","ra":4.4,"re":678,"ca":"brewpub","la":40.436163,"lo":-3.643838,"gm":"https://maps.google.com/?cid=9497882299902342502"},{"id":55,"n":"Craft Beer bar-La Buena Cerveza","ti":"Taproom","ad":"C. de Hern\u00e1n Cort\u00e9s, 7, Centro, 28004 Madrid","we":"https://www.instagram.com/labuenacerveza/","ph":"910 06 05 24","ra":4.7,"re":676,"ca":"brewpub","la":40.42352,"lo":-3.700107,"gm":"https://maps.google.com/?cid=4051099811428513281"},{"id":56,"n":"Olivia Rock Caf\u00e9","ti":"Brewpub","ad":"C. del Ave Mar\u00eda, 35, Centro, 28012 Madrid","we":"https://www.instagram.com/OliviaRockAndRollCafe/","ph":"","ra":4.6,"re":676,"ca":"brewpub","la":40.409849,"lo":-3.700915,"gm":"https://maps.google.com/?cid=18010576438780144772"},{"id":57,"n":"Fat Cats Cocktail House","ti":"Bar craft beer","ad":"C. del Infante, 5, Centro, 28014 Madrid","we":"http://www.fatcatsmadrid.com/","ph":"910 05 49 79","ra":4.7,"re":651,"ca":"confirmed","la":40.414241,"lo":-3.699056,"gm":"https://maps.google.com/?cid=3830841791575790476"},{"id":58,"n":"Be Hoppy","ti":"Brewpub","ad":"C. de F\u00facar, 1, Centro, 28014 Madrid","we":"http://behoppymadrid.com/","ph":"914 67 16 72","ra":4.8,"re":614,"ca":"brewpub","la":40.412457,"lo":-3.695563,"gm":"https://maps.google.com/?cid=7063798050401279005"},{"id":59,"n":"La Osita","ti":"Taproom","ad":"C. de la Cava Baja, 10, Centro, 28005 Madrid","we":"http://www.osobrewco.com/","ph":"915 46 58 70","ra":4.7,"re":611,"ca":"brewpub","la":40.413232,"lo":-3.708492,"gm":"https://maps.google.com/?cid=16257393120988727891"},{"id":60,"n":"Ogham Madrid","ti":"Brewpub","ad":"Calle de Fuencarral, 143, Chamber\u00ed, 28010 Madrid","we":"https://www.instagram.com/ogham.madrid/","ph":"646 48 91 27","ra":4.7,"re":580,"ca":"brewpub","la":40.432466,"lo":-3.704149,"gm":"https://maps.google.com/?cid=15602081484502654272"},{"id":61,"n":"Cervecissimus","ti":"Brewpub","ad":"Calle de las Delicias, 1, Arganzuela, 28045 Madrid","we":"https://www.cervecissimus.es/","ph":"915 45 79 23","ra":4.6,"re":552,"ca":"brewpub","la":40.404343,"lo":-3.695457,"gm":"https://maps.google.com/?cid=11923886109676142791"},{"id":62,"n":"Industria Bar","ti":"Bar craft beer","ad":"Calle de los Ca\u00f1izares, 2, Centro, 28012 Madrid","we":"https://www.instagram.com/industriabarmadrid?igsh=eG9hdjNveWdxdWc=","ph":"","ra":4.9,"re":546,"ca":"confirmed","la":40.413225,"lo":-3.701602,"gm":"https://maps.google.com/?cid=3538353923170925320"},{"id":63,"n":"Cervezas La F\u00e1brica","ti":"Brewpub","ad":"C. de Jes\u00fas, 2, Centro, 28014 Madrid","we":"https://www.cervezaslafabrica.es/","ph":"913 69 06 71","ra":3.5,"re":543,"ca":"brewpub","la":40.413595,"lo":-3.695718,"gm":"https://maps.google.com/?cid=12280732645743715800"},{"id":64,"n":"WHISKY CLUB MADRID","ti":"Bar craft beer","ad":"Calle de Sandoval, 15, Chamber\u00ed, 28010 Madrid","we":"https://whiskyclubmadrid.com/eventos","ph":"642 59 10 07","ra":5.0,"re":540,"ca":"confirmed","la":40.429959,"lo":-3.704474,"gm":"https://maps.google.com/?cid=1041063087711922036"},{"id":65,"n":"Ecoasia. Asian Food & Craft Beer","ti":"Bottle shop / tienda de cerveza","ad":"Calle de Juan Bravo, 71, Salamanca, 28006 Madrid","we":"http://www.ecoasiashop.com/","ph":"911 27 88 08","ra":4.7,"re":528,"ca":"bottle","la":40.432493,"lo":-3.673312,"gm":"https://maps.google.com/?cid=15211393038488721477"},{"id":66,"n":"Nanyea market. Asian food&craft beer (GRUPO ECOASIA)","ti":"Brewpub","ad":"C. de los Estudios, 7, Centro, 28012 Madrid","we":"http://ecoasiashop.com/","ph":"913 65 28 83","ra":4.6,"re":521,"ca":"brewpub","la":40.411797,"lo":-3.707218,"gm":"https://maps.google.com/?cid=17073993051639279005"},{"id":67,"n":"Trigo Limpio","ti":"Bottle shop / tienda de cerveza","ad":"C. de Crist\u00f3bal Bordi\u00fa, 2, Chamber\u00ed, 28003 Madrid","we":"http://www.trigo-limpio.es/","ph":"910 17 37 53","ra":4.3,"re":497,"ca":"bottle","la":40.443179,"lo":-3.703793,"gm":"https://maps.google.com/?cid=13711788823260099038"},{"id":68,"n":"Alchemist 1967","ti":"Bar craft beer","ad":"C. de las Veneras, 1, Centro, 28013 Madrid","we":"http://alchemist1967.com/","ph":"918 28 14 43","ra":4.9,"re":474,"ca":"confirmed","la":40.4192,"lo":-3.707467,"gm":"https://maps.google.com/?cid=9398173316269480356"},{"id":69,"n":"Madrid & Darracott - Vinos y Experiencias","ti":"Bottle shop / tienda de cerveza","ad":"Calle del Conde de Romanones, 2, Centro, 28012 Madrid","we":"http://www.madriddarracott.com/","ph":"912 19 19 75","ra":4.8,"re":447,"ca":"bottle","la":40.413748,"lo":-3.704899,"gm":"https://maps.google.com/?cid=10456540710452647479"},{"id":70,"n":"Taberna Od\u00edn","ti":"Bar craft beer","ad":"C. de la Cruz, 4, Centro, 28012 Madrid","we":"","ph":"699 54 44 52","ra":4.5,"re":403,"ca":"confirmed","la":40.416346,"lo":-3.700759,"gm":"https://maps.google.com/?cid=12075975547528467562"},{"id":71,"n":"BeBop Caf\u00e9","ti":"Brewpub","ad":"C. de Embajadores, 155, Arganzuela, 28045 Madrid","we":"https://www.instagram.com/beboplegazpi/?hl=es","ph":"659 12 96 69","ra":4.8,"re":391,"ca":"brewpub","la":40.395902,"lo":-3.695651,"gm":"https://maps.google.com/?cid=8747213784353089497"},{"id":72,"n":"Cervecer\u00eda Dichosita","ti":"Brewpub","ad":"Mercado de La Guindalera, C. de Eraso, 14, Salamanca, 28028 Madrid","we":"https://cerveceriadichosita.com/","ph":"627 36 12 70","ra":5.0,"re":363,"ca":"brewpub","la":40.434019,"lo":-3.670959,"gm":"https://maps.google.com/?cid=15312361881549770269"},{"id":73,"n":"SieteCopasCaf\u00e9","ti":"Brewpub","ad":"C. de Sor \u00c1ngela de la Cruz, 30, Tetu\u00e1n, 28020 Madrid","we":"","ph":"","ra":4.6,"re":346,"ca":"brewpub","la":40.460488,"lo":-3.697012,"gm":"https://maps.google.com/?cid=16131915349060526634"},{"id":74,"n":"OKasional Beer","ti":"Brewpub","ad":"Carrer de Casanova, 11, Eixample, 08011 Barcelona","we":"https://www.okasional-beer.com/","ph":"931 37 69 06","ra":4.8,"re":342,"ca":"brewpub","la":41.382521,"lo":2.162417,"gm":"https://maps.google.com/?cid=17850664224680230430"},{"id":75,"n":"Cervecera Pen\u00ednsula","ti":"Brewpub","ad":"C. de la Granja, 5, Nave 1, 28108 Alcobendas, Madrid","we":"http://www.cervecerapeninsula.com/","ph":"910 13 31 91","ra":4.4,"re":339,"ca":"brewpub","la":40.527159,"lo":-3.659726,"gm":"https://maps.google.com/?cid=10422042295382743510"},{"id":76,"n":"Cervezas La Cibeles","ti":"Bottle shop / tienda de cerveza","ad":"C. Petr\u00f3leo, 34, 28918 Legan\u00e9s, Madrid","we":"http://www.cervezaslacibeles.com/","ph":"916 79 72 20","ra":4.8,"re":319,"ca":"bottle","la":40.352349,"lo":-3.799413,"gm":"https://maps.google.com/?cid=16080711888809521023"},{"id":77,"n":"The Beer Garden Tap Room Saloon","ti":"Taproom","ad":"C. de Juan de Austria, 23, Chamber\u00ed, 28010 Madrid","we":"http://www.thebeergardenstore.com/","ph":"670 55 90 08","ra":4.7,"re":316,"ca":"brewpub","la":40.433564,"lo":-3.699915,"gm":"https://maps.google.com/?cid=2957157086761714753"},{"id":78,"n":"Taproom Madrid","ti":"Taproom","ad":"Debajo del Tierra Burrito, Pl. de Isabel II, 5, Centro, 28013 Madrid","we":"https://taproommadrid.com/","ph":"915 98 67 73","ra":4.4,"re":298,"ca":"brewpub","la":40.418481,"lo":-3.709416,"gm":"https://maps.google.com/?cid=1475073422942041245"},{"id":79,"n":"MENDRUGO","ti":"Bar craft beer","ad":"C. de Campoamor, 13, Centro, 28004 Madrid","we":"https://www.mendrugotaproom.com/","ph":"913 11 33 46","ra":4.8,"re":293,"ca":"confirmed","la":40.426404,"lo":-3.695683,"gm":"https://maps.google.com/?cid=5683651102915452980"},{"id":80,"n":"La Birrer\u00eda Taproom","ti":"Taproom","ad":"C. del Coraz\u00f3n de Mar\u00eda, 61, Chamart\u00edn, 28002 Madrid","we":"https://business.untappd.com/app/venues/43776/menus","ph":"659 93 74 71","ra":4.4,"re":277,"ca":"brewpub","la":40.44753,"lo":-3.666644,"gm":"https://maps.google.com/?cid=16073621085546225503"},{"id":81,"n":"The Blue Velvet Lounge Bar","ti":"Brewpub","ad":"C. de la Corte de Fara\u00f3n, 24, Villaverde, 28041 Madrid","we":"https://www.facebook.com/TheBlueVelvetLoungeBar/","ph":"","ra":4.8,"re":261,"ca":"brewpub","la":40.361998,"lo":-3.699927,"gm":"https://maps.google.com/?cid=10701854386092842392"},{"id":82,"n":"Artizanale","ti":"Brewpub","ad":"Calle de Sta Engracia, 68, Chamber\u00ed, 28010 Madrid","we":"https://artizanale.es/","ph":"913 69 39 85","ra":4.7,"re":248,"ca":"brewpub","la":40.435985,"lo":-3.698913,"gm":"https://maps.google.com/?cid=17314269871701193921"},{"id":83,"n":"La Abad\u00eda Beer's","ti":"Brewpub","ad":"Ronda de Segovia, 91, Centro, 28005 Madrid","we":"","ph":"","ra":4.5,"re":242,"ca":"brewpub","la":40.407323,"lo":-3.712776,"gm":"https://maps.google.com/?cid=3753656497355016041"},{"id":84,"n":"Maltea2","ti":"Bottle shop / tienda de cerveza","ad":"C. Fuenlabrada, 14, 28921 Alcorc\u00f3n, Madrid","we":"http://www.maltea2.com/","ph":"911 28 35 75","ra":4.8,"re":229,"ca":"bottle","la":40.345113,"lo":-3.826767,"gm":"https://maps.google.com/?cid=10070344487724751102"},{"id":85,"n":"Cervecer\u00eda Territorio Libre","ti":"Bar craft beer","ad":"C. de Nieremberg, 4, Chamart\u00edn, 28002 Madrid","we":"https://www.instagram.com/territorio.libre?igsh=MmtjcWxzMDIyOHJl","ph":"","ra":4.8,"re":203,"ca":"confirmed","la":40.447095,"lo":-3.67092,"gm":"https://maps.google.com/?cid=3035354993073512385"},{"id":86,"n":"Donde Nora","ti":"Bar craft beer","ad":"Calle de Mart\u00ednez Izquierdo, 20, Salamanca, 28028 Madrid","we":"","ph":"","ra":4.9,"re":202,"ca":"confirmed","la":40.43338,"lo":-3.669615,"gm":"https://maps.google.com/?cid=17256254098247784013"},{"id":87,"n":"EL IBU","ti":"Brewpub","ad":"Calle del Pr\u00edncipe de Vergara, 103, Chamart\u00edn, 28006 Madrid","we":"https://www.instagram.com/cerveceriaelibu/","ph":"636 25 83 26","ra":4.6,"re":201,"ca":"brewpub","la":40.43851,"lo":-3.679569,"gm":"https://maps.google.com/?cid=9280431905164099903"},{"id":88,"n":"Lafuente Lorenzo S.A.","ti":"Bottle shop / tienda de cerveza","ad":"Cl. de Ayala, 3, Salamanca, 28001 Madrid","we":"http://www.lafuente.es/","ph":"914 31 61 07","ra":4.6,"re":197,"ca":"bottle","la":40.428025,"lo":-3.688746,"gm":"https://maps.google.com/?cid=8637066711108412181"},{"id":89,"n":"La Buena Pinta","ti":"Brewpub","ad":"C. de Embajadores, 41, Centro, 28012 Madrid","we":"","ph":"916 25 63 71","ra":4.5,"re":196,"ca":"brewpub","la":40.407651,"lo":-3.703856,"gm":"https://maps.google.com/?cid=11168606933815992645"},{"id":90,"n":"BORNIN","ti":"Brewpub","ad":"Parque de las Mesitas, C. Nogales, 1, Arganzuela, 28005 Madrid","we":"http://www.bornincerveceria.com/","ph":"636 67 82 37","ra":4.8,"re":180,"ca":"brewpub","la":40.402996,"lo":-3.708642,"gm":"https://maps.google.com/?cid=3189314124952762493"},{"id":91,"n":"Beerhouse La Latina | Craftbeer Bar","ti":"Brewpub","ad":"C. de las Maldonadas, 5, Centro, 28005 Madrid","we":"http://www.beerhouse.es/","ph":"910 83 72 33","ra":4.6,"re":176,"ca":"brewpub","la":40.410837,"lo":-3.707955,"gm":"https://maps.google.com/?cid=15607847420000230008"},{"id":92,"n":"Cervecer\u00eda Drakkar","ti":"Bar craft beer","ad":"Mercado Municipal de Vallehermoso, C. de Vallehermoso, 36, Chamber\u00ed, 28015 Madrid","we":"https://www.facebook.com/drakkarcerveceria/","ph":"650 21 51 15","ra":4.0,"re":163,"ca":"confirmed","la":40.434062,"lo":-3.707984,"gm":"https://maps.google.com/?cid=172779752390844790"},{"id":93,"n":"Extra","ti":"Bottle shop / tienda de cerveza","ad":"C. de Rafael de Riego, 10, Arganzuela, 28045 Madrid","we":"https://instagram.com/tienda_extra_atocha?igshid=MWZjMTM2ODFkZg==","ph":"915 27 41 86","ra":4.2,"re":145,"ca":"bottle","la":40.405457,"lo":-3.692125,"gm":"https://maps.google.com/?cid=2559646703379583449"},{"id":94,"n":"Bodegas Mariano Madrue\u00f1o","ti":"Bottle shop / tienda de cerveza","ad":"C. del Postigo de San Mart\u00edn, 6, Centro, 28013 Madrid","we":"https://marianomadrueno.es/","ph":"915 21 19 55","ra":4.3,"re":144,"ca":"bottle","la":40.419162,"lo":-3.706025,"gm":"https://maps.google.com/?cid=11198594621360066639"},{"id":95,"n":"Cervezone. Cervezas del Mundo.","ti":"Bottle shop / tienda de cerveza","ad":"C. Barlovento, 30, Centro Comercial Zoco, 28223 Madrid","we":"https://cervezone.com/","ph":"914 68 25 02","ra":4.5,"re":121,"ca":"bottle","la":40.419461,"lo":-3.797096,"gm":"https://maps.google.com/?cid=12039238168512842543"},{"id":96,"n":"Taberna Od\u00edn","ti":"Brewpub","ad":"C. del Pozo, 6, Centro, 28012 Madrid","we":"","ph":"699 54 44 52","ra":4.2,"re":112,"ca":"brewpub","la":40.416245,"lo":-3.70128,"gm":"https://maps.google.com/?cid=6737592842894753975"},{"id":97,"n":"BIERPAUSE CERVEZA ALEMANA Y SALCHICHAS ARTESANAS","ti":"Brewpub","ad":"Pl. de la Cebada, s/n, Centro, 28005 Madrid","we":"","ph":"639 93 95 44","ra":4.9,"re":91,"ca":"brewpub","la":40.411246,"lo":-3.7098,"gm":"https://maps.google.com/?cid=18047832735573633364"},{"id":98,"n":"Lambeer","ti":"Bottle shop / tienda de cerveza","ad":"mercado de La Prosperidad, C. de L\u00f3pez de Hoyos, 81, local 31, Chamart\u00edn, 28002 Madrid","we":"","ph":"644 71 17 74","ra":4.9,"re":84,"ca":"bottle","la":40.444564,"lo":-3.674287,"gm":"https://maps.google.com/?cid=4035745396579729118"},{"id":99,"n":"CERVEZAS MURMAR S.L.","ti":"Bottle shop / tienda de cerveza","ad":"C. Alarc\u00f3n, 28, 28341 Valdemoro, Madrid","we":"http://www.cervezasmurmar.com/","ph":"601 25 70 17","ra":4.9,"re":83,"ca":"bottle","la":40.191732,"lo":-3.676591,"gm":"https://maps.google.com/?cid=5523158292810610710"},{"id":100,"n":"Craft and Beer","ti":"Bar craft beer","ad":"C. del Pez, 38, Centro, 28004 Madrid","we":"https://coolinquieto.es/craftbeer/","ph":"600 67 54 33","ra":4.8,"re":77,"ca":"confirmed","la":40.424382,"lo":-3.706826,"gm":"https://maps.google.com/?cid=11512221710476964657"},{"id":101,"n":"Donde S\u00e1nchez","ti":"Bottle shop / tienda de cerveza","ad":"C. de Sta. Isabel, 5, Centro, 28012 Madrid","we":"","ph":"639 12 64 07","ra":4.9,"re":70,"ca":"bottle","la":40.411446,"lo":-3.698794,"gm":"https://maps.google.com/?cid=1447921161822181479"},{"id":102,"n":"Hidden Beers | Craft Beer Bottle Shop","ti":"Brewpub","ad":"C. de Embajadores, 23, Centro, 28012 Madrid","we":"http://www.hiddenbeers.com/","ph":"663 53 24 95","ra":4.9,"re":64,"ca":"brewpub","la":40.409075,"lo":-3.705304,"gm":"https://maps.google.com/?cid=8002409070666799536"},{"id":103,"n":"BY BEER CERVEZAS DIFERENTES","ti":"Bottle shop / tienda de cerveza","ad":"C. de Tierra de Barros, 2, 28823 Coslada, Madrid","we":"http://cervezasdiferentes.es/","ph":"911 01 27 77","ra":4.8,"re":52,"ca":"bottle","la":40.432292,"lo":-3.543126,"gm":"https://maps.google.com/?cid=6750458497397376600"},{"id":104,"n":"Abeerzing - Distribuidor de Cerveza Artesana","ti":"Bottle shop / tienda de cerveza","ad":"C. de San Jaime, 7, Villa de Vallecas, 28031 Madrid","we":"https://www.abeerzing.com/","ph":"693 28 49 88","ra":5.0,"re":51,"ca":"bottle","la":40.378069,"lo":-3.629295,"gm":"https://maps.google.com/?cid=16938720458348844522"},{"id":105,"n":"Vinalium Delicias","ti":"Bottle shop / tienda de cerveza","ad":"Paseo de las Delicias, 120, Arganzuela, 28045 Madrid","we":"https://www.instagram.com/vinaliummadrid.delicias/","ph":"917 27 16 21","ra":4.6,"re":49,"ca":"bottle","la":40.395082,"lo":-3.694853,"gm":"https://maps.google.com/?cid=15211972130929962879"},{"id":106,"n":"ForBeer Planet","ti":"Brewpub","ad":"Calle de Do\u00f1a Urraca, 15, Latina, 28011 Madrid","we":"http://forbeerplanet.com/","ph":"649 05 84 70","ra":4.7,"re":42,"ca":"brewpub","la":40.412969,"lo":-3.726041,"gm":"https://maps.google.com/?cid=6639604446239900518"},{"id":107,"n":"Ska-pandbeer","ti":"Brewpub","ad":"C. del P\u00e1rroco Don Emilio Franco, 28, Puente de Vallecas, 28053 Madrid","we":"https://skapandbeers.com/","ph":"689 65 02 54","ra":5.0,"re":41,"ca":"brewpub","la":40.391351,"lo":-3.666661,"gm":"https://maps.google.com/?cid=9225496606832380014"},{"id":108,"n":"Taproom Madrid","ti":"Taproom","ad":"dentro de Tierra Burrito Bar, C. de San Germ\u00e1n, 6, Tetu\u00e1n, 28020 Madrid","we":"http://taproommadrid.com/","ph":"915 50 05 85","ra":4.4,"re":37,"ca":"brewpub","la":40.456743,"lo":-3.691509,"gm":"https://maps.google.com/?cid=4512236374625991764"},{"id":109,"n":"Catas de Cervezas en Madrid","ti":"Bar craft beer","ad":"C. de L\u00f3pez de Hoyos, 42, Chamart\u00edn, 28006 Madrid","we":"https://www.maitreysommelier.es/cata-cervezas-madrid","ph":"911 88 89 54","ra":4.9,"re":35,"ca":"confirmed","la":40.439882,"lo":-3.681009,"gm":"https://maps.google.com/?cid=12990764960873717130"},{"id":110,"n":"Cerveceria Biarritz","ti":"Brewpub","ad":"C/ de Biarritz, 1, Salamanca, 28028 Madrid","we":"","ph":"912 61 38 97","ra":5.0,"re":26,"ca":"brewpub","la":40.435678,"lo":-3.664199,"gm":"https://maps.google.com/?cid=3945950609897778248"},{"id":111,"n":"La Chusqueter\u00eda","ti":"Brewpub","ad":"C. de Vallehermoso, 36, Chamber\u00ed, 28015 Madrid","we":"https://www.vamosabeer.com/","ph":"662 67 57 70","ra":5.0,"re":24,"ca":"brewpub","la":40.434104,"lo":-3.708196,"gm":"https://maps.google.com/?cid=15884437869569582509"},{"id":112,"n":"Taproom Madrid","ti":"Taproom","ad":"Av. de Europa, 13, Local B, 28108 Alcobendas, Madrid","we":"http://taproommadrid.com/","ph":"910 05 38 12","ra":3.8,"re":18,"ca":"brewpub","la":40.518131,"lo":-3.657813,"gm":"https://maps.google.com/?cid=5031223704850489082"},{"id":113,"n":"Caja de Tercios y Barriles de Cerveza mahou","ti":"Bottle shop / tienda de cerveza","ad":"C. del Doce de Octubre, 39, Retiro, 28009 Madrid","we":"https://www.licorurgente.com/caja-de-tercios-de-mahou-retornable-y-no-retornable/","ph":"915 73 68 13","ra":4.5,"re":11,"ca":"bottle","la":40.41642,"lo":-3.672049,"gm":"https://maps.google.com/?cid=888498480541140819"},{"id":114,"n":"Coso de Dali","ti":"Brewpub","ad":"Av. de Felipe II, 15, Salamanca, 28009 Madrid","we":"","ph":"915 64 00 25","ra":3.8,"re":10,"ca":"brewpub","la":40.424292,"lo":-3.673712,"gm":"https://maps.google.com/?cid=3732505604151673588"},{"id":115,"n":"CERVETRI Cervezas Online","ti":"Bottle shop / tienda de cerveza","ad":"C. de Agust\u00edn Querol, 6, Retiro, 28014 Madrid","we":"http://www.cervetri.com/","ph":"618 57 52 03","ra":5.0,"re":2,"ca":"bottle","la":40.407472,"lo":-3.682873,"gm":"https://maps.google.com/?cid=11555390100269724402"},{"id":116,"n":"The Bottle Shop.eco","ti":"Bottle shop / tienda de cerveza","ad":"Calle de Don Ram\u00f3n de la Cruz, 47, Salamanca, 28001 Madrid","we":"","ph":"915 91 91 32","ra":5.0,"re":2,"ca":"bottle","la":40.428988,"lo":-3.679284,"gm":"https://maps.google.com/?cid=8579784404281514054"},{"id":117,"n":"Cerveza El Lobo","ti":"Brewpub","ad":"C. Antonio Prieto, 95, Usera, 28026 Madrid","we":"","ph":"","ra":5.0,"re":1,"ca":"brewpub","la":40.380666,"lo":-3.71182,"gm":"https://maps.google.com/?cid=16387951605227999833"}];
+var VECTORS=[{"perfil_usuario":"acida_refrescante","style_family":"Sour / Wild","Style":"Sour - Gose","abv_medio":6.0,"ibu_medio":12.5,"score_medio":0.8055814372,"frecuencia":3,"ranking_medio":7.0,"intensidad_inferida":0.41,"vector_abv":0.3764640268,"vector_ibu":0.1025641026,"vector_score":0.3381806213,"vector_frecuencia":0.1818181818,"vector_intensidad":0.2713178295},{"perfil_usuario":"acida_refrescante","style_family":"Sour / Wild","Style":"Lambic - Fruit","abv_medio":5.74,"ibu_medio":18.0,"score_medio":0.7867706173,"frecuencia":5,"ranking_medio":7.4,"intensidad_inferida":0.4164,"vector_abv":0.3503625209,"vector_ibu":0.1730769231,"vector_score":0.1970787893,"vector_frecuencia":0.3636363636,"vector_intensidad":0.2812403101},{"perfil_usuario":"acida_refrescante","style_family":"Sour / Wild","Style":"Sour - Berliner Weisse","abv_medio":4.9,"ibu_medio":4.5,"score_medio":0.7825791954,"frecuencia":5,"ranking_medio":10.4,"intensidad_inferida":0.312,"vector_abv":0.2660345789,"vector_ibu":0.0,"vector_score":0.1656385164,"vector_frecuencia":0.3636363636,"vector_intensidad":0.119379845},{"perfil_usuario":"acida_refrescante","style_family":"Sour / Wild","Style":"Lambic - Gueuze","abv_medio":6.15,"ibu_medio":5.0,"score_medio":0.7815062904,"frecuencia":2,"ranking_medio":9.5,"intensidad_inferida":0.389,"vector_abv":0.3915225878,"vector_ibu":0.0064102564,"vector_score":0.1575905489,"vector_frecuencia":0.0909090909,"vector_intensidad":0.2387596899},{"perfil_usuario":"acida_refrescante","style_family":"Fruit Beer","Style":"Fruit and Field Beer","abv_medio":2.25,"ibu_medio":25.0,"score_medio":0.7695194999,"frecuencia":1,"ranking_medio":14.0,"intensidad_inferida":0.235,"vector_abv":0.0,"vector_ibu":0.2628205128,"vector_score":0.0676764405,"vector_frecuencia":0.0,"vector_intensidad":0.0},{"perfil_usuario":"acida_refrescante","style_family":"Sour / Wild","Style":"Sour - Flanders Red Ale","abv_medio":7.9,"ibu_medio":17.5,"score_medio":0.7669123469,"frecuencia":3,"ranking_medio":16.0,"intensidad_inferida":0.544,"vector_abv":0.5672058003,"vector_ibu":0.1666666667,"vector_score":0.048119927,"vector_frecuencia":0.1818181818,"vector_intensidad":0.4790697674},{"perfil_usuario":"acida_refrescante","style_family":"Sour / Wild","Style":"Lambic - Traditional","abv_medio":5.0,"ibu_medio":5.0,"score_medio":0.7604972971,"frecuencia":1,"ranking_medio":19.0,"intensidad_inferida":0.32,"vector_abv":0.2760736196,"vector_ibu":0.0064102564,"vector_score":0.0,"vector_frecuencia":0.0,"vector_intensidad":0.1317829457},{"perfil_usuario":"afrutada_suave","style_family":"IPA / Pale Ale","Style":"IPA - Imperial","abv_medio":8.7833333333,"ibu_medio":82.5,"score_medio":0.8399455311,"frecuencia":6,"ranking_medio":4.6666666667,"intensidad_inferida":0.857,"vector_abv":0.6558839933,"vector_ibu":1.0,"vector_score":0.5959491094,"vector_frecuencia":0.4545454545,"vector_intensidad":0.9643410853},{"perfil_usuario":"afrutada_suave","style_family":"IPA / Pale Ale","Style":"Pale Ale - American","abv_medio":5.0,"ibu_medio":37.5,"score_medio":0.8215383029,"frecuencia":2,"ranking_medio":8.5,"intensidad_inferida":0.45,"vector_abv":0.2760736196,"vector_ibu":0.4230769231,"vector_score":0.4578746592,"vector_frecuencia":0.0909090909,"vector_intensidad":0.3333333333},{"perfil_usuario":"afrutada_suave","style_family":"IPA / Pale Ale","Style":"IPA - Belgian","abv_medio":9.0,"ibu_medio":65.0,"score_medio":0.8215205003,"frecuencia":1,"ranking_medio":7.0,"intensidad_inferida":0.8,"vector_abv":0.6776352482,"vector_ibu":0.7756410256,"vector_score":0.4577411195,"vector_frecuencia":0.0,"vector_intensidad":0.8759689922},{"perfil_usuario":"afrutada_suave","style_family":"IPA / Pale Ale","Style":"IPA - New England","abv_medio":7.2,"ibu_medio":60.0,"score_medio":0.8186182344,"frecuencia":2,"ranking_medio":12.5,"intensidad_inferida":0.672,"vector_abv":0.4969325153,"vector_ibu":0.7115384615,"vector_score":0.4359709349,"vector_frecuencia":0.0909090909,"vector_intensidad":0.6775193798},{"perfil_usuario":"afrutada_suave","style_family":"Wheat Beer","Style":"Wheat Beer - American Pale","abv_medio":5.6,"ibu_medio":22.5,"score_medio":0.8136426662,"frecuencia":1,"ranking_medio":12.0,"intensidad_inferida":0.426,"vector_abv":0.3363078639,"vector_ibu":0.2307692308,"vector_score":0.3986487024,"vector_frecuencia":0.0,"vector_intensidad":0.296124031},{"perfil_usuario":"afrutada_suave","style_family":"IPA / Pale Ale","Style":"IPA - American","abv_medio":7.0,"ibu_medio":60.0,"score_medio":0.813109713,"frecuencia":5,"ranking_medio":13.6,"intensidad_inferida":0.66,"vector_abv":0.4768544339,"vector_ibu":0.7115384615,"vector_score":0.3946509676,"vector_frecuencia":0.3636363636,"vector_intensidad":0.6589147287},{"perfil_usuario":"afrutada_suave","style_family":"Fruit Beer","Style":"Fruit and Field Beer","abv_medio":5.0,"ibu_medio":25.0,"score_medio":0.8097758549,"frecuencia":2,"ranking_medio":17.0,"intensidad_inferida":0.4,"vector_abv":0.2760736196,"vector_ibu":0.2628205128,"vector_score":0.3696433656,"vector_frecuencia":0.0909090909,"vector_intensidad":0.2558139535},{"perfil_usuario":"afrutada_suave","style_family":"Wheat Beer","Style":"Wheat Beer - Witbier","abv_medio":4.9,"ibu_medio":15.0,"score_medio":0.8085958223,"frecuencia":1,"ranking_medio":19.0,"intensidad_inferida":0.354,"vector_abv":0.2660345789,"vector_ibu":0.1346153846,"vector_score":0.3607918239,"vector_frecuencia":0.0,"vector_intensidad":0.184496124},{"perfil_usuario":"ligera_facil","style_family":"Wheat Beer","Style":"Wheat Beer - Wheatwine","abv_medio":8.0,"ibu_medio":65.0,"score_medio":0.8938110863,"frecuencia":1,"ranking_medio":1.0,"intensidad_inferida":0.74,"vector_abv":0.577244841,"vector_ibu":0.7756410256,"vector_score":1.0,"vector_frecuencia":0.0,"vector_intensidad":0.7829457364},{"perfil_usuario":"ligera_facil","style_family":"Lager / Pilsner","Style":"Lager - Adjunct","abv_medio":4.7466666667,"ibu_medio":13.0,"score_medio":0.8579075204,"frecuencia":3,"ranking_medio":5.0,"intensidad_inferida":0.3368,"vector_abv":0.2506413832,"vector_ibu":0.108974359,"vector_score":0.7306837791,"vector_frecuencia":0.1818181818,"vector_intensidad":0.1578294574},{"perfil_usuario":"ligera_facil","style_family":"Lager / Pilsner","Style":"Lager - Vienna","abv_medio":5.25,"ibu_medio":22.5,"score_medio":0.8530396608,"frecuencia":2,"ranking_medio":10.0,"intensidad_inferida":0.405,"vector_abv":0.3011712214,"vector_ibu":0.2307692308,"vector_score":0.6941694793,"vector_frecuencia":0.0909090909,"vector_intensidad":0.2635658915},{"perfil_usuario":"ligera_facil","style_family":"Lager / Pilsner","Style":"Lager - Helles","abv_medio":4.86,"ibu_medio":21.5,"score_medio":0.8521726713,"frecuencia":5,"ranking_medio":8.8,"intensidad_inferida":0.3776,"vector_abv":0.2620189626,"vector_ibu":0.2179487179,"vector_score":0.6876661051,"vector_frecuencia":0.3636363636,"vector_intensidad":0.2210852713},{"perfil_usuario":"ligera_facil","style_family":"Lager / Pilsner","Style":"Lager - European Pale","abv_medio":4.0,"ibu_medio":21.5,"score_medio":0.851290794,"frecuencia":1,"ranking_medio":9.0,"intensidad_inferida":0.326,"vector_abv":0.1756832125,"vector_ibu":0.2179487179,"vector_score":0.6810510554,"vector_frecuencia":0.0,"vector_intensidad":0.1410852713},{"perfil_usuario":"ligera_facil","style_family":"Lager / Pilsner","Style":"Pilsner - German","abv_medio":4.5,"ibu_medio":32.5,"score_medio":0.8475142378,"frecuencia":1,"ranking_medio":11.0,"intensidad_inferida":0.4,"vector_abv":0.2258784161,"vector_ibu":0.358974359,"vector_score":0.652722732,"vector_frecuencia":0.0,"vector_intensidad":0.2558139535},{"perfil_usuario":"ligera_facil","style_family":"Lager / Pilsner","Style":"Lager - Marzen / Oktoberfest","abv_medio":6.05,"ibu_medio":21.5,"score_medio":0.8440689972,"frecuencia":2,"ranking_medio":15.0,"intensidad_inferida":0.449,"vector_abv":0.3814835471,"vector_ibu":0.2179487179,"vector_score":0.6268796394,"vector_frecuencia":0.0909090909,"vector_intensidad":0.3317829457},{"perfil_usuario":"ligera_facil","style_family":"Lager / Pilsner","Style":"Lager - Kellerbier / Zwickelbier","abv_medio":5.2,"ibu_medio":30.0,"score_medio":0.8439056804,"frecuencia":1,"ranking_medio":15.0,"intensidad_inferida":0.432,"vector_abv":0.2961517011,"vector_ibu":0.3269230769,"vector_score":0.6256545833,"vector_frecuencia":0.0,"vector_intensidad":0.3054263566},{"perfil_usuario":"ligera_facil","style_family":"Lager / Pilsner","Style":"Lager - Light","abv_medio":4.1,"ibu_medio":10.0,"score_medio":0.8429326979,"frecuencia":2,"ranking_medio":14.5,"intensidad_inferida":0.286,"vector_abv":0.1857222532,"vector_ibu":0.0705128205,"vector_score":0.6183561451,"vector_frecuencia":0.0909090909,"vector_intensidad":0.0790697674},{"perfil_usuario":"ligera_facil","style_family":"Wheat Beer","Style":"Wheat Beer - Kristallweizen","abv_medio":5.3,"ibu_medio":12.5,"score_medio":0.8405967262,"frecuencia":1,"ranking_medio":17.0,"intensidad_inferida":0.368,"vector_abv":0.3061907418,"vector_ibu":0.1025641026,"vector_score":0.6008337886,"vector_frecuencia":0.0,"vector_intensidad":0.2062015504},{"perfil_usuario":"ligera_facil","style_family":"Lager / Pilsner","Style":"Pilsner - Imperial","abv_medio":9.0,"ibu_medio":47.5,"score_medio":0.8402280632,"frecuencia":1,"ranking_medio":19.0,"intensidad_inferida":0.73,"vector_abv":0.6776352482,"vector_ibu":0.5512820513,"vector_score":0.598068411,"vector_frecuencia":0.0,"vector_intensidad":0.7674418605},{"perfil_usuario":"lupulada_intensa","style_family":"IPA / Pale Ale","Style":"IPA - New England","abv_medio":8.0,"ibu_medio":60.0,"score_medio":0.8648309218,"frecuencia":1,"ranking_medio":5.0,"intensidad_inferida":0.72,"vector_abv":0.577244841,"vector_ibu":0.7115384615,"vector_score":0.7826169015,"vector_frecuencia":0.0,"vector_intensidad":0.7519379845},{"perfil_usuario":"lupulada_intensa","style_family":"IPA / Pale Ale","Style":"IPA - Imperial","abv_medio":8.35,"ibu_medio":82.5,"score_medio":0.8595081901,"frecuencia":6,"ranking_medio":10.5,"intensidad_inferida":0.831,"vector_abv":0.6123814835,"vector_ibu":1.0,"vector_score":0.7426905614,"vector_frecuencia":0.4545454545,"vector_intensidad":0.9240310078},{"perfil_usuario":"lupulada_intensa","style_family":"IPA / Pale Ale","Style":"IPA - Belgian","abv_medio":9.0,"ibu_medio":65.0,"score_medio":0.8594873783,"frecuencia":1,"ranking_medio":9.0,"intensidad_inferida":0.8,"vector_abv":0.6776352482,"vector_ibu":0.7756410256,"vector_score":0.7425344501,"vector_frecuencia":0.0,"vector_intensidad":0.8759689922},{"perfil_usuario":"lupulada_intensa","style_family":"IPA / Pale Ale","Style":"IPA - American","abv_medio":6.8791666667,"ibu_medio":60.0,"score_medio":0.8586141169,"frecuencia":12,"ranking_medio":11.0833333333,"intensidad_inferida":0.65275,"vector_abv":0.4647239264,"vector_ibu":0.7115384615,"vector_score":0.7359840291,"vector_frecuencia":1.0,"vector_intensidad":0.6476744186},{"perfil_usuario":"tostada_cuerpo","style_family":"Stout / Porter","Style":"Stout - English","abv_medio":6.8,"ibu_medio":30.0,"score_medio":0.8574208082,"frecuencia":1,"ranking_medio":2.0,"intensidad_inferida":0.528,"vector_abv":0.4567763525,"vector_ibu":0.3269230769,"vector_score":0.7270329022,"vector_frecuencia":0.0,"vector_intensidad":0.4542635659},{"perfil_usuario":"tostada_cuerpo","style_family":"Stout / Porter","Style":"Stout - Russian Imperial","abv_medio":11.0,"ibu_medio":70.0,"score_medio":0.8402564587,"frecuencia":2,"ranking_medio":7.0,"intensidad_inferida":0.88,"vector_abv":0.8784160625,"vector_ibu":0.8397435897,"vector_score":0.5982814082,"vector_frecuencia":0.0909090909,"vector_intensidad":1.0},{"perfil_usuario":"tostada_cuerpo","style_family":"Stout / Porter","Style":"Stout - American Imperial","abv_medio":12.2111111111,"ibu_medio":65.0,"score_medio":0.8347500924,"frecuencia":9,"ranking_medio":7.8888888889,"intensidad_inferida":0.86,"vector_abv":1.0,"vector_ibu":0.7756410256,"vector_score":0.5569776068,"vector_frecuencia":0.7272727273,"vector_intensidad":0.9689922481},{"perfil_usuario":"tostada_cuerpo","style_family":"Strong Ale","Style":"Strong Ale - American","abv_medio":10.55,"ibu_medio":70.0,"score_medio":0.828273409,"frecuencia":2,"ranking_medio":10.5,"intensidad_inferida":0.88,"vector_abv":0.8332403793,"vector_ibu":0.8397435897,"vector_score":0.5083953598,"vector_frecuencia":0.0909090909,"vector_intensidad":1.0},{"perfil_usuario":"tostada_cuerpo","style_family":"Stout / Porter","Style":"Stout - Oatmeal","abv_medio":8.3,"ibu_medio":30.0,"score_medio":0.8226483981,"frecuencia":1,"ranking_medio":15.0,"intensidad_inferida":0.618,"vector_abv":0.6073619632,"vector_ibu":0.3269230769,"vector_score":0.4662015933,"vector_frecuencia":0.0,"vector_intensidad":0.5937984496},{"perfil_usuario":"tostada_cuerpo","style_family":"Stout / Porter","Style":"Porter - Imperial","abv_medio":9.8333333333,"ibu_medio":42.5,"score_medio":0.8204419025,"frecuencia":3,"ranking_medio":16.3333333333,"intensidad_inferida":0.76,"vector_abv":0.7612939208,"vector_ibu":0.4871794872,"vector_score":0.4496504504,"vector_frecuencia":0.1818181818,"vector_intensidad":0.8139534884},{"perfil_usuario":"tostada_cuerpo","style_family":"Stout / Porter","Style":"Stout - Irish Dry","abv_medio":5.0,"ibu_medio":35.0,"score_medio":0.8165142768,"frecuencia":1,"ranking_medio":18.0,"intensidad_inferida":0.44,"vector_abv":0.2760736196,"vector_ibu":0.391025641,"vector_score":0.4201889391,"vector_frecuencia":0.0,"vector_intensidad":0.3178294574},{"perfil_usuario":"tostada_cuerpo","style_family":"Strong Ale","Style":"Old Ale","abv_medio":8.0,"ibu_medio":47.5,"score_medio":0.8146940262,"frecuencia":1,"ranking_medio":20.0,"intensidad_inferida":0.67,"vector_abv":0.577244841,"vector_ibu":0.5512820513,"vector_score":0.4065350586,"vector_frecuencia":0.0,"vector_intensidad":0.6744186047}];
+var STYLE_META={"Sour - Gose":{"e":"&#127819;","d":"Acida, ligeramente salada y muy refrescante.","f":"Acido, sal, cilantro, fruta"},"Lambic - Fruit":{"e":"&#127819;","d":"Fermentacion espontanea belga con frutas reales.","f":"Cereza, frambuesa, acidez compleja"},"Sour - Berliner Weisse":{"e":"&#127819;","d":"La mas ligera y acida. Baja graduacion y mucho frescor.","f":"Acido lactico, trigo, muy fresca"},"Lambic - Gueuze":{"e":"&#127819;","d":"Mezcla de Lambics. Compleja y muy seca.","f":"Acidez compleja, seco, terroso"},"Fruit and Field Beer":{"e":"&#127820;","d":"Elaborada con frutas reales. Dulce y refrescante.","f":"Fruta fresca, dulzor natural"},"Sour - Flanders Red Ale":{"e":"&#127817;","d":"Roja flamenca belga. Equilibrio entre dulce y acido.","f":"Cereza, vinagre suave, roble"},"Lambic - Traditional":{"e":"&#127819;","d":"Lambic sin filtrar. Salvaje, seco y complejo.","f":"Terroso, acido, salvaje"},"IPA - Imperial":{"e":"&#127807;","d":"La IPA al extremo. Intensa, compleja y potente.","f":"Lupulo intenso, resina, citricos potentes"},"Pale Ale - American":{"e":"&#127807;","d":"El punto de entrada perfecto al craft.","f":"Floral, citrico, lupulo suave"},"IPA - Belgian":{"e":"&#127807;","d":"IPA con levadura belga. Aromatica y especiada.","f":"Tropical, especias, levadura"},"IPA - New England":{"e":"&#127820;","d":"Hazy IPA. Afrutada, sedosa y con amargor suave.","f":"Mango, melocoton, tropical, suave"},"Wheat Beer - American Pale":{"e":"&#127806;","d":"Cerveza de trigo americana. Ligera y refrescante.","f":"Trigo, citrico, limpio"},"IPA - American":{"e":"&#127807;","d":"La IPA clasica. Lupulada, amarga y con caracter.","f":"Pino, resina, citricos, lupulo"},"Wheat Beer - Witbier":{"e":"&#127806;","d":"La Witbier belga. Ligera, especiada y refrescante.","f":"Naranja, cilantro, especias suaves"},"Wheat Beer - Wheatwine":{"e":"&#127806;","d":"Trigo fuerte y complejo. Intenso y con caracter.","f":"Caramelo, malta, trigo intenso"},"Lager - Adjunct":{"e":"&#127866;","d":"Lager ligera y limpia. Facil de beber.","f":"Limpio, cereal, suave"},"Lager - Vienna":{"e":"&#127866;","d":"La Vienna Lager. Malta caramelizada y equilibrada.","f":"Caramelo suave, malta tostada, limpio"},"Lager - Helles":{"e":"&#127866;","d":"La Helles bavara. Suave, limpia y perfecta.","f":"Pan, malta dulce, cereal suave"},"Lager - European Pale":{"e":"&#127866;","d":"Lager europea clasica. Limpia y refrescante.","f":"Limpio, herbal, ligero"},"Pilsner - German":{"e":"&#127866;","d":"La Pilsner alemana. Seca, herbal y con amargor elegante.","f":"Herbal, lupulo floral, seco"},"Lager - Marzen / Oktoberfest":{"e":"&#127866;","d":"La cerveza del Oktoberfest. Malta y tradicion.","f":"Malta caramelizada, pan, equilibrado"},"Lager - Kellerbier / Zwickelbier":{"e":"&#127866;","d":"Lager sin filtrar. Mas compleja que la estandar.","f":"Levadura, malta, sin filtrar"},"Lager - Light":{"e":"&#127866;","d":"La mas ligera. Perfecta para hidratarse con estilo.","f":"Muy ligero, limpio, refrescante"},"Wheat Beer - Kristallweizen":{"e":"&#127806;","d":"Hefeweizen filtrada. Clara y elegante.","f":"Platano suave, limpio, trigo"},"Pilsner - Imperial":{"e":"&#127866;","d":"Pilsner fuerte. Mas cuerpo e intensidad.","f":"Herbal intenso, malta, potente"},"Stout - English":{"e":"&#9749;","d":"La Stout inglesa clasica. Tostada y equilibrada.","f":"Cafe, chocolate, tostado suave"},"Stout - Russian Imperial":{"e":"&#9749;","d":"La Stout mas intensa. Potente y compleja.","f":"Chocolate negro, cafe intenso, alcohol"},"Stout - American Imperial":{"e":"&#9749;","d":"Imperial Stout americana. Oscura y extrema.","f":"Chocolate, cafe, caramelo, potente"},"Strong Ale - American":{"e":"&#128293;","d":"Ale fuerte americana. Intensa y compleja.","f":"Caramelo, fruta seca, alcohol"},"Stout - Oatmeal":{"e":"&#9749;","d":"Stout con avena. Suave y cremosa.","f":"Avena, chocolate con leche, crema"},"Porter - Imperial":{"e":"&#9749;","d":"Porter al extremo. Oscuro e intenso.","f":"Chocolate oscuro, cafe, caramelo"},"Stout - Irish Dry":{"e":"&#9749;","d":"La Stout irlandesa clasica. Seca y tostada.","f":"Cafe, tostado seco, amargor elegante"},"Old Ale":{"e":"&#127863;","d":"Ale envejecida. Dulce y compleja.","f":"Fruta pasa, caramelo, roble"}};
+var GMAPS_KEY="AIzaSyADTXnRRhpb0AEZB2Zm-OMZqP2K0ywa3Mc";
+
+var QUESTIONS=[
+  {
+    step:"Paso 1 de 4",
+    q:"&#191;Qu&#233; sabor te apetece?",
+    opts:[
+      {ic:"&#127820;",l:"Frutal y arom&#225;tico",h:"Mango, fruta, c&#237;tricos",v:[0.32,0.25,0.45,0.25,0.28],profile:"afrutada_suave"},
+      {ic:"&#127807;",l:"Amargo y lupulado",h:"Intenso, resinoso, con car&#225;cter",v:[0.6,0.82,0.65,0.5,0.72],profile:"lupulada_intensa"},
+      {ic:"&#9749;",l:"Tostado y oscuro",h:"Caf&#233;, cacao, malta",v:[0.72,0.5,0.62,0.35,0.75],profile:"tostada_cuerpo"},
+      {ic:"&#127819;",l:"&#193;cido y refrescante",h:"Diferente, fresco, sorprendente",v:[0.28,0.08,0.22,0.28,0.18],profile:"acida_refrescante"},
+      {ic:"&#127866;",l:"Ligero y f&#225;cil",h:"Sin complicaciones, refrescante",v:[0.24,0.18,0.68,0.28,0.18],profile:"ligera_facil"},
+      {ic:"&#127922;",l:"Sorpr&#233;ndeme",h:"Que el algoritmo decida",v:[0.45,0.45,0.5,0.3,0.45],profile:null}
+    ]
+  },
+  {
+    step:"Paso 2 de 4",
+    q:"&#191;Qu&#233; intensidad buscas?",
+    opts:[
+      {ic:"&#127811;",l:"Suave",h:"Baja graduaci\u00f3n, f\u00e1cil de beber",v:[0.18,0.12,0.65,0.25,0.15]},
+      {ic:"&#9855;",l:"Media",h:"Equilibrada, con algo de car\u00e1cter",v:[0.38,0.35,0.55,0.22,0.38]},
+      {ic:"&#128170;",l:"Intensa",h:"M\u00e1s cuerpo, m\u00e1s sabor",v:[0.68,0.65,0.55,0.35,0.72]},
+      {ic:"&#129300;",l:"Me da igual",h:"Que el algoritmo decida",v:[0.42,0.42,0.55,0.28,0.42]}
+    ]
+  },
+  {
+    step:"Paso 3 de 4",
+    q:"&#191;Cu&#225;l es tu plan?",
+    opts:[
+      {ic:"&#128188;",l:"Afterwork",h:"Algo r\u00e1pido y bueno despu\u00e9s del trabajo",scoreBoost:0.2,intensity:"media"},
+      {ic:"&#128149;",l:"Cita",h:"Algo accesible en un buen local",scoreBoost:0.3,intensity:"suave"},
+      {ic:"&#128101;",l:"Con amigos",h:"Ambiente y varias paradas",scoreBoost:0.1,intensity:"media"},
+      {ic:"&#127774;",l:"Algo tranquilo",h:"Sin prisa, disfrutando",scoreBoost:0.15,intensity:"suave"},
+      {ic:"&#9889;",l:"Ruta intensa",h:"Muchas paradas y estilos potentes",scoreBoost:0.0,intensity:"intensa"}
+    ]
+  },
+  {
+    step:"&#218;ltimo paso",
+    q:"&#191;Ir a lo seguro o probar algo nuevo?",
+    opts:[
+      {ic:"&#128149;",l:"Algo f\u00e1cil",h:"Accesible y conocido",freqBoost:0.4,explore:false},
+      {ic:"&#128161;",l:"Algo diferente",h:"Estilos menos habituales",freqBoost:-0.2,explore:true},
+      {ic:"&#128293;",l:"Algo potente",h:"M\u00e1ximo sabor e intensidad",freqBoost:0.1,explore:false,intensityBoost:0.5},
+      {ic:"&#127922;",l:"Sorpr&#233;ndeme",h:"Deja que el modelo elija",freqBoost:0.0,explore:true}
+    ]
+  }
+];
+
+
+// ── LOGIC ────────────────────────────────────
+function nd(v){return(!v||v==="null"||v==="undefined"||v==="NaN"||String(v).trim()==="")?null:v;}
+function disp(v,fb){return nd(v)||(fb||"No disponible");}
+function normTipo(ti){
+  if(!ti)return{label:"No disponible",cat:"pending"};
+  var t=ti.toLowerCase();
+  if(t.indexOf("bottle")>=0||t.indexOf("tienda")>=0||t.indexOf("shop")>=0)return{label:"Tienda craft",cat:"bottle"};
+  if(t.indexOf("brewpub")>=0||t.indexOf("taproom")>=0)return{label:"Taproom / Brewpub",cat:"brewpub"};
+  if(t.indexOf("bar craft")>=0||t.indexOf("craft beer")>=0)return{label:"Bar craft",cat:"confirmed"};
+  return{label:ti,cat:"pending"};
+}
+B.forEach(function(b){var nt=normTipo(b.ti);b._label=nt.label;b._cat=nt.cat;});
+
+function craftScore(b){
+  var s=0;
+  if(b.ra>=4.8)s+=40;else if(b.ra>=4.5)s+=30;else if(b.ra>=4.0)s+=20;else if(b.ra>0)s+=10;
+  if(b._cat==="confirmed")s+=25;else if(b._cat==="brewpub")s+=20;else if(b._cat==="bottle")s+=15;
+  if(nd(b.we))s+=10;
+  if(b.re>100)s+=10;else if(b.re>30)s+=5;
+  return Math.min(99,s);
+}
+function scoreLabel(sc){
+  if(sc>=85)return{t:"Imprescindible craft",c:"gr"};
+  if(sc>=70)return{t:"Muy recomendable",c:"gr"};
+  if(sc>=55)return{t:"Buena opci\u00f3n",c:"hi"};
+  if(sc>=40)return{t:"Opci\u00f3n correcta",c:""};
+  return{t:"Pendiente de validar",c:""};
+}
+function getTags(b){
+  var tags=[];
+  var sl=scoreLabel(b._score);if(sl.c)tags.push(sl);
+  if(b.ra>=4.7)tags.push({t:"Alta valoraci\u00f3n",c:"hi"});
+  if(b.re>200)tags.push({t:"Muchas rese\u00f1as",c:""});
+  if(b._cat==="brewpub")tags.push({t:"Taproom destacado",c:""});
+  if(nd(b.we))tags.push({t:"Con web",c:""});
+  return tags.slice(0,4);
+}
+function getRecText(b){
+  var parts=[];
+  if(b.ra>=4.7&&b.re>100)parts.push("Destaca por su alta valoraci\u00f3n y volumen de rese\u00f1as");
+  else if(b.ra>=4.5)parts.push("Tiene una valoraci\u00f3n excelente");
+  else if(b.ra>=4.0)parts.push("Buena valoraci\u00f3n general");
+  if(b._cat==="brewpub")parts.push("ideal si buscas una experiencia craft m\u00e1s aut\u00e9ntica");
+  else if(b._cat==="bottle")parts.push("perfecta para llevarte cervezas artesanales a casa");
+  else if(b._cat==="confirmed")parts.push("buena parada social durante una ruta");
+  return parts.length?parts.join(", ")+".":"Local craft de Madrid.";
+}
+function getScoreWhy(b){
+  var p=[];
+  if(b.ra>=4.5)p.push("rating "+b.ra.toFixed(1));
+  if(b.re>50)p.push(b.re.toLocaleString()+" rese\u00f1as");
+  if(b._cat!=="pending")p.push("perfil craft "+b._label.toLowerCase());
+  if(nd(b.we))p.push("web disponible");
+  return p.length?"Calculado por "+p.join(", ")+".":"Incluido en la base de datos craft de Madrid.";
+}
+function getUseCase(b){
+  if(b._cat==="brewpub")return{ic:"&#127867;",t:"Experiencia craft. Ideal para probar cervezas directamente vinculadas a productores artesanales."};
+  if(b._cat==="bottle")return{ic:"&#127978;",t:"Para llevar. Descubre nuevas referencias y llévatelas a casa."};
+  if(b._cat==="confirmed")return{ic:"&#127866;",t:"Parada social. Buen ambiente y selecci\u00f3n craft durante la ruta."};
+  return{ic:"&#128308;",t:"Local pendiente de validar su perfil craft."};
+}
+B.forEach(function(b){b._score=craftScore(b);});
+
+var CAT={
+  confirmed:{c:"#16A34A",l:"Bar craft"},
+  brewpub:{c:"#D97706",l:"Taproom / Brewpub"},
+  bottle:{c:"#92400E",l:"Tienda craft"},
+  pending:{c:"#DC2626",l:"Pendiente"}
+};
+
+var PRESETS=[
+  {ic:"&#127981;",name:"Malasa\u00f1a Craft Tour",desc:"Los mejores craft del barrio m\u00e1s alternativo",lat:40.4237,lng:-3.7033,hours:2,stops:3,tipo:"confirmed",rating:4.0},
+  {ic:"&#127769;",name:"Afterwork",desc:"Paradas r\u00e1pidas y buena cerveza despu\u00e9s del trabajo",lat:40.4290,lng:-3.6882,hours:1,stops:2,tipo:"",rating:4.2},
+  {ic:"&#128149;",name:"Ruta para cita",desc:"Locales con ambiente y buenas valoraciones",lat:40.4200,lng:-3.7000,hours:2,stops:3,tipo:"brewpub",rating:4.5},
+  {ic:"&#127978;",name:"Tiendas craft",desc:"Para llevarte cervezas especiales a casa",lat:40.4168,lng:-3.7038,hours:1,stops:3,tipo:"bottle",rating:0},
+  {ic:"&#11088;",name:"Top rated",desc:"Solo los locales mejor valorados de Madrid",lat:40.4168,lng:-3.7038,hours:3,stops:4,tipo:"",rating:4.7},
+  {ic:"&#9881;&#65039;",name:"Personalizada",desc:"Elige zona, tiempo y preferencias",lat:null,lng:null,hours:2,stops:3,tipo:"",rating:0}
+];
+
+var ST={filt:{cat:"",rated:false,web:false},q:"",userLat:null,userLng:null,votes:JSON.parse(localStorage.getItem("cbm_v")||"{}"),saved:JSON.parse(localStorage.getItem("cbm_s")||"{}"),cur:null,wiz:{lat:null,lng:null,hours:2,stops:3,tipo:null,rating:0,preset:null},route:[],quiz:{step:0,answers:[]}};
+
+// ── MAP ──────────────────────────────────────
+var map=L.map("map",{center:[40.4237,-3.7033],zoom:14,zoomControl:false,attributionControl:true});
+function addTiles(m){
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{
+    subdomains:["a","b","c","d"],
+    maxZoom:19,
+    attribution:'&copy; <a href="https://carto.com/">CARTO</a>'
+  }).addTo(m);
+}
+addTiles(map);
+var lg=L.layerGroup().addTo(map),rl=L.layerGroup().addTo(map);
+
+function haversine(a,b){var R=6371,dl=(b.la-a.la)*Math.PI/180,dg=(b.lo-a.lo)*Math.PI/180;var x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.la*Math.PI/180)*Math.cos(b.la*Math.PI/180)*Math.sin(dg/2)*Math.sin(dg/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+function mkIcon(b,active){
+  var col=(CAT[b._cat]||CAT.pending).c;
+  var s=active?22:12;
+  var border=active?"2.5px solid #fff":"1.5px solid #fff";
+  var shadow=active?"0 2px 10px rgba(0,0,0,.35)":"0 1px 3px rgba(0,0,0,.2)";
+  var ring=b._score>=80&&!active?"outline:2px solid "+col+";outline-offset:2px;":"";
+  return L.divIcon({
+    html:"<div style='width:"+s+"px;height:"+s+"px;border-radius:50%;background:"+col+";border:"+border+";box-shadow:"+shadow+";"+ring+"'></div>",
+    className:"",iconSize:[s,s],iconAnchor:[s/2,s/2]
+  });
+}
+function mkRouteIcon(n){
+  return L.divIcon({
+    html:"<div style='width:30px;height:30px;border-radius:50%;background:#111;border:2.5px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;font-family:DM Sans,sans-serif'>"+n+"</div>",
+    className:"",iconSize:[30,30],iconAnchor:[15,15]
+  });
+}
+
+function getF(){
+  var q=ST.q.toLowerCase();
+  return B.filter(function(b){
+    if(ST.filt.cat&&b._cat!==ST.filt.cat)return false;
+    if(ST.filt.rated&&!(b.ra>0))return false;
+    if(ST.filt.web&&!nd(b.we))return false;
+    if(q&&b.n.toLowerCase().indexOf(q)<0&&(b.ad||"").toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+}
+function renderMarkers(){
+  lg.clearLayers();
+  var f=getF(),c={confirmed:0,brewpub:0,bottle:0,pending:0};
+  f.forEach(function(b){
+    c[b._cat]=(c[b._cat]||0)+1;
+    var mk=L.marker([b.la,b.lo],{icon:mkIcon(b,false)}).addTo(lg);
+    mk.on("click",function(){showSheet(b);});
+  });
+  document.getElementById("cNum").textContent=f.length;
+  document.getElementById("lN1").textContent=c.confirmed;
+  document.getElementById("lN2").textContent=c.brewpub;
+  document.getElementById("lN3").textContent=c.bottle;
+  document.getElementById("lN4").textContent=c.pending;
+  document.getElementById("emptyMsg").classList.toggle("on",f.length===0);
+}
+
+// Filters
+function setTab(btn,cat){
+  document.querySelectorAll(".chip[data-cat]").forEach(function(x){x.classList.remove("on");});
+  btn.classList.add("on");ST.filt.cat=cat;closeSheet();renderMarkers();
+}
+function toggleChip(btn,k){ST.filt[k]=!ST.filt[k];btn.classList.toggle("on",ST.filt[k]);closeSheet();renderMarkers();}
+document.getElementById("srchIn").addEventListener("input",function(){ST.q=this.value;renderMarkers();});
+
+// BAR SHEET
+function showSheet(b){
+  ST.cur=b;
+  var cat=CAT[b._cat]||CAT.pending;
+  var sc=b._score,sl=scoreLabel(sc),tags=getTags(b);
+  var rec=getRecText(b),scWhy=getScoreWhy(b),uc=getUseCase(b);
+  var refLat=ST.userLat||map.getCenter().lat;
+  var refLng=ST.userLng||map.getCenter().lng;
+  var dkm=haversine({la:refLat,lo:refLng},b);
+  var distStr=dkm<1?Math.round(dkm*1000)+"m":dkm.toFixed(1)+"km";
+  var minsWalk=Math.max(1,Math.round(dkm*1.3/5*60));
+  var distSrc=ST.userLat?"desde tu ubicaci\u00f3n":"desde el centro del mapa";
+  var stars="";for(var i=0;i<5;i++)stars+=i<Math.round(b.ra)?"&#9733;":"&#9734;";
+  var gv=ST.votes["g_"+b.id]||{up:0,dn:0},mv=ST.votes["m_"+b.id]||null;
+  var total=gv.up+gv.dn;
+  var pctTxt=total>0?Math.round(gv.up/total*100)+"% lo recomienda para una ruta craft.":"S\u00e9 el primero en valorarlo.";
+  var inRoute=ST.route&&ST.route.some(function(r){return r.id===b.id;});
+  var saved=ST.saved[b.id];
+
+  document.getElementById("bsContent").innerHTML=
+    "<div class='bs-head'>"+
+      "<div class='bs-type' style='color:"+cat.c+"'>"+cat.l+"</div>"+
+      "<div class='bs-name'>"+b.n+"</div>"+
+      "<div class='bs-meta'>"+(b.ra>0?stars+" "+b.ra.toFixed(1)+(b.re>0?" &middot; "+b.re.toLocaleString()+" rese&ntilde;as":"")+" &middot; ":"")+"<span style='color:var(--ink-4)'>"+distStr+" &middot; "+minsWalk+" min andando</span></div>"+
+      "<div class='bs-loc'>&#128205; "+(nd(b.ad)||"Madrid")+"</div>"+
+    "</div>"+
+
+    "<div style='height:1px;background:var(--line-2);margin:0 16px'></div>"+
+
+    "<div class='bs-section' style='margin-top:14px;margin-bottom:12px'>"+
+      "<div class='bs-section-title'>Craft Score</div>"+
+      "<div class='bs-score-row'>"+
+        "<div class='bs-score-num'>"+sc+"<span>/99</span></div>"+
+        "<div class='bs-score-right'>"+
+          "<div class='bs-score-lbl' style='color:"+(sl.c==="gr"?"var(--gr)":sl.c==="hi"?"var(--acc-d)":"var(--ink-3)")+"'>"+sl.t+"</div>"+
+          "<div class='bs-score-bar'><div class='bs-score-fill' style='width:"+sc+"%'></div></div>"+
+        "</div>"+
+      "</div>"+
+      "<div class='bs-score-why'>"+scWhy+"</div>"+
+    "</div>"+
+
+    "<div class='bs-section' style='margin-bottom:12px'>"+
+      "<div class='bs-tags'>"+tags.map(function(t){return "<span class='bs-tag "+t.c+"'>"+t.t+"</span>";}).join("")+"</div>"+
+    "</div>"+
+
+    "<div class='bs-section' style='margin-bottom:12px'>"+
+      "<div class='bs-rec'>"+
+        "<div class='bs-rec-lbl'>Por qu\u00e9 te lo recomendamos</div>"+
+        "<div class='bs-rec-txt'>"+rec+"</div>"+
+      "</div>"+
+    "</div>"+
+
+    "<div class='bs-section' style='margin-bottom:12px'>"+
+      "<div style='display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--line-2);border-radius:var(--r)'>"+
+        "<span style='font-size:20px'>"+uc.ic+"</span>"+
+        "<span style='font-size:12px;color:var(--ink-3);line-height:1.5'>"+uc.t+"</span>"+
+      "</div>"+
+    "</div>"+
+
+    "<div style='height:1px;background:var(--line-2);margin:0 16px'></div>"+
+
+    "<div class='bs-section' style='margin-top:14px;margin-bottom:12px'>"+
+      "<div class='bs-section-title'>Datos</div>"+
+      "<div class='bs-info'>"+
+        "<div class='bs-info-item'><div class='lbl'>Tel&eacute;fono</div><div class='val "+(nd(b.ph)?"":"dim")+"'>"+disp(b.ph)+"</div></div>"+
+        "<div class='bs-info-item'><div class='lbl'>Web</div><div class='val "+(nd(b.we)?"":"dim")+"'>"+(nd(b.we)?"<a href='"+b.we+"' target='_blank' onclick='event.stopPropagation()'>Abrir &#8599;</a>":"No disponible")+"</div></div>"+
+        "<div class='bs-info-item'><div class='lbl'>Distancia</div><div class='val'>"+distStr+"</div></div>"+
+        "<div class='bs-info-item'><div class='lbl'>Tiempo andando</div><div class='val'>"+minsWalk+" min</div></div>"+
+      "</div>"+
+    "</div>"+
+
+    "<div class='bs-comm'>"+
+      "<div class='bs-comm-q'>&#191;Recomendar\u00edas este local?</div>"+
+      "<div class='bs-comm-row'>"+
+        "<button class='vote-btn"+(mv===1?" up":"")+"' id='btnU' onclick='vote(1)'>&#128077; S\u00ed <span id='vU'>"+gv.up+"</span></button>"+
+        "<button class='vote-btn"+(mv===-1?" dn":"")+"' id='btnD' onclick='vote(-1)'>&#128078; No <span id='vD'>"+gv.dn+"</span></button>"+
+      "</div>"+
+      "<div class='bs-comm-pct'>"+pctTxt+"</div>"+
+    "</div>"+
+
+    "<div class='bs-actions'>"+
+      "<button class='act-primary' onclick='window.open(\""+b.gm+"\",\"_blank\")'>&#128205; Abrir en Google Maps</button>"+
+      "<div class='act-row'>"+
+        (nd(b.we)?"<button class='act-sec' onclick='window.open(\""+b.we+"\",\"_blank\")'>&#128279; Web</button>":"<button class='act-sec' disabled style='opacity:.35'>Sin web</button>")+
+        "<button class='act-sec "+(saved?"saved":"")+"' id='btnSave' onclick='toggleSave()'>"+
+          (saved?"&#9829; Guardado":"&#9825; Guardar")+
+        "</button>"+
+      "</div>"+
+      "<div class='act-row'>"+
+        "<button class='act-sec "+(inRoute?"done":"acc")+"' id='btnAddRoute' onclick='toggleRouteAdd()'>"+
+          (inRoute?"&#10003; En la ruta":"+ A\u00f1adir a ruta")+
+        "</button>"+
+        "<button class='act-sec' onclick='createRouteFromVenue()'>&#128506; Ruta desde aqu\u00ed</button>"+
+      "</div>"+
+    "</div>";
+
+  document.getElementById("barSheet").classList.add("open");
+  map.setView([b.la,b.lo],16,{animate:true});
+}
+function closeSheet(){document.getElementById("barSheet").classList.remove("open");ST.cur=null;}
+map.on("click",closeSheet);
+
+function vote(dir){
+  if(!ST.cur)return;
+  var id=ST.cur.id,prev=ST.votes["m_"+id],gv=ST.votes["g_"+id]||{up:0,dn:0},k=dir>0?"up":"dn";
+  if(prev===dir){gv[k]=Math.max(0,gv[k]-1);ST.votes["m_"+id]=null;}
+  else{if(prev)gv[prev>0?"up":"dn"]=Math.max(0,gv[prev>0?"up":"dn"]-1);gv[k]++;ST.votes["m_"+id]=dir;}
+  ST.votes["g_"+id]=gv;localStorage.setItem("cbm_v",JSON.stringify(ST.votes));
+  var mv=ST.votes["m_"+id];
+  var vuEl=document.getElementById("vU"),vdEl=document.getElementById("vD");
+  if(vuEl)vuEl.textContent=gv.up;if(vdEl)vdEl.textContent=gv.dn;
+  var buEl=document.getElementById("btnU"),bdEl=document.getElementById("btnD");
+  if(buEl)buEl.className="vote-btn"+(mv===1?" up":"");
+  if(bdEl)bdEl.className="vote-btn"+(mv===-1?" dn":"");
+  var t=gv.up+gv.dn,pEl=document.querySelector(".bs-comm-pct");
+  if(pEl)pEl.textContent=t>0?Math.round(gv.up/t*100)+"% lo recomienda.":"S\u00e9 el primero en valorarlo.";
+  showToast(mv?"Voto registrado":"Voto eliminado");
+}
+function toggleSave(){
+  if(!ST.cur)return;var id=ST.cur.id;ST.saved[id]=!ST.saved[id];localStorage.setItem("cbm_s",JSON.stringify(ST.saved));
+  var btn=document.getElementById("btnSave");
+  if(btn){btn.innerHTML=ST.saved[id]?"&#9829; Guardado":"&#9825; Guardar";btn.className="act-sec"+(ST.saved[id]?" saved":"");}
+  showToast(ST.saved[id]?"Guardado":"Eliminado");
+}
+function toggleRouteAdd(){
+  if(!ST.cur)return;var b=ST.cur;if(!ST.route)ST.route=[];
+  var idx=-1;ST.route.forEach(function(r,i){if(r.id===b.id)idx=i;});
+  if(idx>=0)ST.route.splice(idx,1);else ST.route.push(b);
+  var inRoute=ST.route.some(function(r){return r.id===b.id;});
+  var btn=document.getElementById("btnAddRoute");
+  if(btn){btn.innerHTML=inRoute?"&#10003; En la ruta":"+ A\u00f1adir a ruta";btn.className="act-sec "+(inRoute?"done":"acc");}
+  showToast(inRoute?"A\u00f1adido a la ruta":"Eliminado de la ruta");
+}
+function createRouteFromVenue(){
+  if(!ST.cur)return;var b=ST.cur;
+  ST.wiz.lat=b.la;ST.wiz.lng=b.lo;ST.wiz.hours=2;ST.wiz.stops=3;ST.wiz.tipo=null;ST.wiz.rating=0;ST.wiz.preset=null;
+  closeSheet();generateRoute();showToast("Generando ruta desde "+b.n);
+}
+
+// WIZARD
+var zoneMap=null,zoneMarker=null;
+function buildPresets(){
+  var list=document.getElementById("presetList");list.innerHTML="";
+  PRESETS.forEach(function(p){
+    var d=document.createElement("div");d.className="preset-item";
+    d.innerHTML="<div class='preset-item-ic'>"+p.ic+"</div><div><div class='preset-item-name'>"+p.name+"</div><div class='preset-item-desc'>"+p.desc+"</div></div>";
+    d.onclick=function(){
+      document.querySelectorAll(".preset-item").forEach(function(x){x.classList.remove("on");});d.classList.add("on");
+      if(p.lat){ST.wiz.lat=p.lat;ST.wiz.lng=p.lng;ST.wiz.hours=p.hours;ST.wiz.stops=p.stops;ST.wiz.tipo=p.tipo;ST.wiz.rating=p.rating;ST.wiz.preset=p.name;setTimeout(function(){generateRoute();document.getElementById("rteOverlay").classList.remove("on");},280);}
+      else{goStep(1);}
+    };
+    list.appendChild(d);
+  });
+}
+function openWizard(){document.getElementById("rteResult").classList.remove("open");document.getElementById("rteOverlay").classList.add("on");buildPresets();goStep(0);setTimeout(function(){if(!zoneMap){zoneMap=L.map("zone-map",{center:[40.4237,-3.7033],zoom:12,zoomControl:false,attributionControl:false});addTiles(zoneMap);zoneMap.on("click",function(e){ST.wiz.lat=e.latlng.lat;ST.wiz.lng=e.latlng.lng;if(zoneMarker)zoneMap.removeLayer(zoneMarker);zoneMarker=L.circleMarker([e.latlng.lat,e.latlng.lng],{radius:40,color:"#D97706",fillColor:"#D97706",fillOpacity:.15,weight:2}).addTo(zoneMap);L.circleMarker([e.latlng.lat,e.latlng.lng],{radius:6,color:"#D97706",fillColor:"#D97706",fillOpacity:1,weight:2}).addTo(zoneMap);document.getElementById("zoneHint").textContent="Zona seleccionada \u2014 radio 800m";document.getElementById("zone-map").classList.add("sel");var n=document.getElementById("s1Next");n.style.opacity="1";n.style.pointerEvents="auto";});}zoneMap.invalidateSize();},200);}
+function goStep(n){document.querySelectorAll(".rte-step").forEach(function(s){s.classList.remove("on");});document.getElementById("step"+n).classList.add("on");if(zoneMap)setTimeout(function(){zoneMap.invalidateSize();},100);}
+function selTime(el,h){document.querySelectorAll(".time-opt").forEach(function(x){x.classList.remove("on");});el.classList.add("on");ST.wiz.hours=h;ST.wiz.stops=h===1?2:h===2?3:h===3?4:5;var n=document.getElementById("s2Next");n.style.opacity="1";n.style.pointerEvents="auto";}
+function selPref(g,v,btn){document.querySelectorAll(".pref-opt[onclick*=\"'"+g+"'\"]").forEach(function(x){x.classList.remove("on");});btn.classList.add("on");ST.wiz[g]=v==="any"?null:v;}
+function rteOverlayClick(e){if(e.target===document.getElementById("rteOverlay"))document.getElementById("rteOverlay").classList.remove("on");}
+
+// ROUTE
+function decodePolyline(enc){var pts=[],idx=0,len=enc.length,lat=0,lng=0;while(idx<len){var b,shift=0,res=0;do{b=enc.charCodeAt(idx++)-63;res|=(b&0x1f)<<shift;shift+=5;}while(b>=0x20);var dlat=((res&1)?~(res>>1):(res>>1));lat+=dlat;shift=0;res=0;do{b=enc.charCodeAt(idx++)-63;res|=(b&0x1f)<<shift;shift+=5;}while(b>=0x20);var dlng=((res&1)?~(res>>1):(res>>1));lng+=dlng;pts.push([lat/1e5,lng/1e5]);}return pts;}
+
+function routeReason(b,i,total){
+  if(i===0){return b.ra>=4.5?"Ideal para empezar \u2014 valoraci\u00f3n excelente.":"Buen punto de partida.";}
+  if(i===total-1){return "Perfecta para cerrar la ruta.";}
+  if(b._cat==="brewpub")return "Experiencia taproom en el camino.";
+  if(b._cat==="bottle")return "Tienda craft \u2014 descubre nuevas referencias.";
+  if(b._score>=70)return "Muy valorado por la comunidad craft.";
+  return "Buena parada en el recorrido.";
+}
+
+async function generateRoute(){
+  document.getElementById("rteOverlay").classList.remove("on");
+  var w=ST.wiz;if(!w.lat||!w.lng){showToast("Selecciona una zona primero");return;}
+  var center={la:w.lat,lo:w.lng};
+  var cands=B.filter(function(b){if(haversine(center,b)>0.8)return false;if(w.tipo&&b._cat!==w.tipo)return false;if(w.rating&&b.ra<w.rating)return false;return true;});
+  cands.sort(function(a,bb){return(bb._score-haversine(center,bb)*15)-(a._score-haversine(center,a)*15);});
+  var n=Math.min(w.stops,cands.length);if(n===0){showToast("Sin locales en esta zona. Prueba otra.");return;}
+  var pool=cands.slice(0,Math.min(n*3,cands.length)),route=[],rem=pool.slice(),cur=center;
+  while(route.length<n&&rem.length>0){var best=0,bestD=Infinity;rem.forEach(function(b,i){var d=haversine(cur,b);if(d<bestD){bestD=d;best=i;}});route.push(rem[best]);cur=rem[best];rem.splice(best,1);}
+  ST.route=route;rl.clearLayers();
+  var tl={1:"1 hora",2:"2 horas",3:"3 horas",5:"Toda la noche"};
+  document.getElementById("rrTitle").textContent=w.preset||"Ruta craft personalizada";
+  document.getElementById("rrMeta").textContent=route.length+" paradas \u00b7 "+(tl[w.hours]||"")+" \u00b7 Calculando...";
+  document.getElementById("rrList").innerHTML="<div style='padding:16px;color:var(--ink-4);font-size:13px'>Calculando ruta por calles...</div>";
+  document.getElementById("rteResult").classList.add("open");
+
+  var segTimes=[],segDists=[],realRoute=false;
+  try{
+    var wpts=route.map(function(b){return{location:{latLng:{latitude:b.la,longitude:b.lo}}};});
+    var body={origin:wpts[0],destination:wpts[wpts.length-1],travelMode:"WALK",computeAlternativeRoutes:false,polylineEncoding:"ENCODED_POLYLINE"};
+    if(wpts.length>2)body.intermediates=wpts.slice(1,-1);
+    var resp=await fetch("https://routes.googleapis.com/directions/v2:computeRoutes",{method:"POST",headers:{"Content-Type":"application/json","X-Goog-Api-Key":GMAPS_KEY,"X-Goog-FieldMask":"routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs.duration,routes.legs.distanceMeters"},body:JSON.stringify(body)});
+    if(!resp.ok)throw new Error("HTTP "+resp.status);
+    var data=await resp.json();
+    if(!data.routes||!data.routes[0])throw new Error("Sin ruta");
+    data.routes[0].legs.forEach(function(leg){var secs=parseInt((leg.duration||"0s").replace("s",""));segTimes.push(Math.round(secs/60));segDists.push(leg.distanceMeters||0);});
+    var pts=decodePolyline(data.routes[0].polyline.encodedPolyline);
+    if(pts.length>1){L.polyline(pts,{color:"#D97706",weight:3,opacity:.8}).addTo(rl);realRoute=true;}
+  }catch(e){
+    for(var ri=1;ri<route.length;ri++){var dkm=haversine(route[ri-1],route[ri])*1.3;segTimes.push(Math.max(1,Math.round(dkm/5*60)));segDists.push(Math.round(dkm*1000));}
+    var ll=route.map(function(b){return[b.la,b.lo];});L.polyline(ll,{color:"#D97706",weight:2.5,opacity:.7,dashArray:"6 5"}).addTo(rl);
+  }
+  route.forEach(function(b,i){L.marker([b.la,b.lo],{icon:mkRouteIcon(i+1),zIndexOffset:1000}).addTo(rl);});
+  if(route.length>1){try{map.fitBounds(L.latLngBounds(route.map(function(b){return[b.la,b.lo];})).pad(.25),{animate:true});}catch(e){}}
+  var totalMins=segTimes.reduce(function(a,b){return a+b;},0);
+  var avgSc=Math.round(route.reduce(function(a,b){return a+b._score;},0)/route.length);
+  document.getElementById("rrMeta").textContent=route.length+" paradas \u00b7 "+(tl[w.hours]||"")+(totalMins>0?" \u00b7 "+totalMins+" min andando":"")+" \u00b7 Score "+avgSc;
+  var list=document.getElementById("rrList");list.innerHTML="";
+  route.forEach(function(b,i){
+    var div=document.createElement("div");div.className="rr-stop";
+    var walkHtml=i>0&&segTimes[i-1]!==undefined?"<div class='rr-stop-walk'>"+segTimes[i-1]+" min"+(segDists[i-1]?" \u00b7 "+Math.round(segDists[i-1])+"m":"")+" desde la anterior</div>":"";
+    div.innerHTML="<div class='rr-stop-num'>"+(i+1)+"</div><div class='rr-stop-info'><div class='rr-stop-name'>"+b.n+"</div><div class='rr-stop-meta'>"+(b._label)+(b.ra>0?" \u00b7 &#9733; "+b.ra.toFixed(1):"")+"</div><div class='rr-stop-reason'>"+routeReason(b,i,route.length)+"</div>"+walkHtml+"</div>";
+    div.onclick=function(){showSheet(b);};list.appendChild(div);
+  });
+  showToast(realRoute?"Ruta por calles calculada":"Estimaci\u00f3n de tiempos");
+}
+function clearRoute(){document.getElementById("rteResult").classList.remove("open");rl.clearLayers();ST.route=[];ST.wiz.preset=null;}
+function shareRoute(){
+  if(!ST.route||!ST.route.length){showToast("Genera una ruta primero");return;}
+  var txt="BeerWalk Madrid\n\n"+(ST.wiz.preset||"Ruta craft")+"\n"+ST.route.length+" paradas\n\n"+ST.route.map(function(b,i){return (i+1)+". "+b.n+(b.ra>0?" \u2605"+b.ra.toFixed(1):"");}).join("\n");
+  if(navigator.share)navigator.share({title:"BeerWalk Madrid",text:txt}).catch(function(){});
+  else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(function(){showToast("Ruta copiada");});
+}
+
+// QUIZ — 4 steps, auto-advance
+function cosineSim(a,b){var d=0,na=0,nb=0;for(var i=0;i<a.length;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];}return(na===0||nb===0)?0:d/(Math.sqrt(na)*Math.sqrt(nb));}
+
+function getRecommendations(answers){
+  // Build weighted user vector from Q1+Q2
+  var q1=QUESTIONS[0].opts[answers[0]];
+  var q2=QUESTIONS[1].opts[answers[1]];
+  var q3=QUESTIONS[2].opts[answers[2]||0];
+  var q4=QUESTIONS[3].opts[answers[3]||0];
+  var uv=q1.v.map(function(v,i){return (v*0.45)+(q2.v[i]*0.45)+(q3.intensity==="suave"?[0.15,0.1,0.05,0,0.05][i]:q3.intensity==="intensa"?[0.05,0.05,-0.05,0.05,0.05][i]:0)+(q4.intensityBoost?[0.1,0.1,0,0,0.1][i]*q4.intensityBoost:0);});
+
+  // Score each style
+  var scored=VECTORS.map(function(s){
+    // Profile filter: if q1 has profile, give styles of that profile a big boost
+    var profileBoost=q1.profile&&s.perfil_usuario===q1.profile?0.25:0;
+    // Exploration: penalize high-frequency styles when "explore"
+    var freqPenalty=q4.explore?(s.vector_frecuencia||0)*0.15:0;
+    var freqBonus=q4.freqBoost?(s.vector_frecuencia||0)*q4.freqBoost:0;
+    // Score boost from plan
+    var scoreBns=q3.scoreBoost?(s.vector_score||0)*q3.scoreBoost:0;
+    var sim=cosineSim(uv,[s.vector_abv,s.vector_ibu,s.vector_score,s.vector_frecuencia,s.vector_intensidad]);
+    return{style:s.Style,family:s.style_family,abv:s.abv_medio,ibu:s.ibu_medio,total:sim+profileBoost+freqBonus+scoreBns-freqPenalty};
+  });
+  var seen={},out=[];
+  scored.sort(function(a,b){return b.total-a.total;});
+  scored.forEach(function(s){if(!seen[s.style]){seen[s.style]=true;out.push(s);}});
+  return out.slice(0,6);
+}
+
+function openQuiz(){
+  document.getElementById("quizOverlay").classList.add("on");
+  ST.quiz={step:0,answers:[]};
+  renderIntro();
+}
+function closeQuiz(){document.getElementById("quizOverlay").classList.remove("on");}
+function quizOverlayClick(e){if(e.target===document.getElementById("quizOverlay"))closeQuiz();}
+
+function renderIntro(){
+  document.getElementById("qPF").style.width="0%";
+  document.getElementById("qPL").textContent="4 preguntas";
+  document.getElementById("qPP").textContent="~30 seg";
+  document.getElementById("quizBody").innerHTML=
+    "<div class='quiz-body' style='text-align:center;padding-top:8px'>"+
+    "<div style='font-size:36px;margin-bottom:16px'>&#127866;</div>"+
+    "<div class='quiz-q' style='margin-bottom:8px'>Encuentra tu cerveza ideal</div>"+
+    "<div class='quiz-hint' style='margin-bottom:28px'>Responde 4 preguntas r&#225;pidas y descubre los estilos que mejor encajan con tus gustos.</div>"+
+    "<div style='display:inline-flex;align-items:center;gap:8px;background:var(--line-2);border-radius:var(--r-pill);padding:8px 16px;font-size:12px;font-weight:600;color:var(--ink-3);margin-bottom:28px'>&#9201; ~30 segundos &middot; 4 preguntas</div>"+
+    "<div><button class='btn btn-ink' style='width:100%;border-radius:var(--r-lg);padding:14px;font-size:15px' onclick='renderQuiz()'>Empezar &#8594;</button></div>"+
+    "<div style='margin-top:10px'><button class='btn btn-ghost btn-sm' onclick='closeQuiz()'>Ahora no</button></div>"+
+    "</div>";
+}
+
+function renderQuiz(){
+  var step=ST.quiz.step;
+  if(step>=QUESTIONS.length){showQuizResult();return;}
+  var q=QUESTIONS[step];
+  var pct=Math.round((step/QUESTIONS.length)*100);
+  document.getElementById("qPF").style.width=pct+"%";
+  document.getElementById("qPL").textContent=q.step;
+  document.getElementById("qPP").textContent=pct+"%";
+  var sel=ST.quiz.answers[step]!==undefined?ST.quiz.answers[step]:-1;
+  var h="<div class='quiz-body'>"+
+    "<div class='quiz-q'>"+q.q+"</div>"+
+    "<div class='quiz-opts' style='gap:8px;margin-bottom:16px'>";
+  q.opts.forEach(function(o,i){
+    h+="<div class='quiz-opt"+(sel===i?" on":"")+"' onclick='selectAndAdvance("+i+")'>"+
+      "<div class='quiz-opt-ic'>"+o.ic+"</div>"+
+      "<div><div class='quiz-opt-lbl'>"+o.l+"</div><div class='quiz-opt-hint'>"+o.h+"</div></div>"+
+      (sel===i?"<div style='margin-left:auto;color:var(--acc);font-size:16px'>&#10003;</div>":"")+
+    "</div>";
+  });
+  h+="</div><div class='quiz-nav'>";
+  if(step>0)h+="<button class='btn btn-ghost btn-sm' onclick='quizBack()'>&#8592; Volver</button>";
+  h+="<button class='btn btn-ghost btn-sm "+(sel<0?"":"")+"' id='qNxt' style='"+(sel<0?"opacity:.3;pointer-events:none":"")+"' onclick='quizNext()'>Siguiente &#8594;</button>";
+  h+="</div></div>";
+  document.getElementById("quizBody").innerHTML=h;
+}
+
+var _autoAdvance;
+function selectAndAdvance(idx){
+  ST.quiz.answers[ST.quiz.step]=idx;
+  // Highlight selection
+  document.querySelectorAll(".quiz-opt").forEach(function(el,i){el.classList.toggle("on",i===idx);});
+  var nBtn=document.getElementById("qNxt");if(nBtn){nBtn.style.opacity="1";nBtn.style.pointerEvents="auto";}
+  // Auto-advance after 500ms
+  clearTimeout(_autoAdvance);
+  _autoAdvance=setTimeout(function(){quizNext();},520);
+}
+function quizNext(){clearTimeout(_autoAdvance);if(ST.quiz.answers[ST.quiz.step]===undefined)return;ST.quiz.step++;renderQuiz();}
+function quizBack(){clearTimeout(_autoAdvance);if(ST.quiz.step<=0){renderIntro();return;}ST.quiz.step--;renderQuiz();}
+
+function showQuizResult(){
+  document.getElementById("qPF").style.width="100%";
+  document.getElementById("qPL").textContent="Tu perfil";
+  document.getElementById("qPP").textContent="&#10003;";
+  var res=getRecommendations(ST.quiz.answers);
+  var top=res[0],alts=res.slice(1,4);
+  var meta=STYLE_META[top.style]||{e:"&#127866;",d:"Un gran estilo craft.",f:"Variado"};
+  var sim=Math.round(Math.min(99,top.total*100));
+  var q3plan=QUESTIONS[2].opts[ST.quiz.answers[2]||0];
+
+  var altsHtml=alts.map(function(a){
+    var am=STYLE_META[a.style]||{e:"&#127866;"};
+    return "<div class='qr-alt'><div class='qr-alt-ic'>"+am.e+"</div>"+
+      "<div style='flex:1'><div class='qr-alt-name'>"+a.style+"</div><div class='qr-alt-meta'>"+a.family+"</div></div>"+
+      "<div class='qr-alt-pct'>"+Math.round(Math.min(99,a.total*100))+"%</div></div>";
+  }).join("");
+
+  document.getElementById("quizBody").innerHTML=
+    "<div class='quiz-result'>"+
+    "<div class='qr-label'>Tu perfil cervecero &middot; Plan: "+q3plan.l+"</div>"+
+    "<div class='qr-hero'>"+
+      "<div class='qr-em'>"+meta.e+"</div>"+
+      "<div class='qr-style'>"+top.style+"</div>"+
+      "<div class='qr-family'>"+top.family+"</div>"+
+      "<div class='qr-stats'>"+
+        "<div class='qr-stat'><div class='qr-stat-l'>ABV</div><div class='qr-stat-v'>"+top.abv.toFixed(1)+"&#176;</div></div>"+
+        "<div class='qr-stat'><div class='qr-stat-l'>IBU</div><div class='qr-stat-v'>"+top.ibu.toFixed(0)+"</div></div>"+
+        "<div class='qr-stat'><div class='qr-stat-l'>Encaje</div><div class='qr-stat-v'>"+sim+"%</div></div>"+
+      "</div>"+
+      "<div class='qr-desc'>"+meta.d+"</div>"+
+      "<div class='qr-match'><span style='font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap'>Compatibilidad</span>"+
+        "<div class='qr-match-bar'><div class='qr-match-fill' style='width:"+sim+"%'></div></div>"+
+        "<span class='qr-match-pct'>"+sim+"%</span></div>"+
+    "</div>"+
+    "<div class='qr-flavors'><div class='qr-flavors-l'>Notas de sabor</div><div class='qr-flavors-t'>"+meta.f+"</div></div>"+
+    (alts.length?"<div class='qr-alts-title'>Tambi&#233;n podr&#237;as probar</div>"+altsHtml:"")+
+    "<button class='qr-bar-btn' onclick='showBarsFromQuiz()'>&#128205; Ver locales compatibles</button>"+
+    "<div style='display:flex;gap:8px;margin-top:8px'>"+
+      "<button class='btn btn-ghost btn-sm' style='flex:1' onclick='renderIntro()'>&#8635; Repetir</button>"+
+      "<button class='btn btn-ink btn-sm' style='flex:1' onclick='closeQuiz()'>Cerrar</button>"+
+    "</div>"+
+    "<div class='qr-disc'>Recomendaci\u00f3n basada en similitud coseno + perfil de usuario. La disponibilidad depende de cada local.</div>"+
+    "</div>";
+}
+function showBarsFromQuiz(){closeQuiz();ST.filt.cat="";document.querySelectorAll(".chip[data-cat]").forEach(function(x,i){x.classList.toggle("on",i===0);});renderMarkers();showToast("Locales compatibles con tu perfil");}
+
+
+// GEO
+function findNearby(){
+  if(!navigator.geolocation){showToast("Activa la ubicaci\u00f3n");return;}
+  showToast("Obteniendo ubicaci\u00f3n...");
+  navigator.geolocation.getCurrentPosition(function(p){ST.userLat=p.coords.latitude;ST.userLng=p.coords.longitude;map.setView([p.coords.latitude,p.coords.longitude],15,{animate:true});L.circleMarker([p.coords.latitude,p.coords.longitude],{radius:7,color:"#2563EB",fillColor:"#2563EB",fillOpacity:1,weight:2,opacity:.4}).addTo(map);showToast("Locales cerca de ti");},function(){showToast("No se pudo obtener la ubicaci\u00f3n");});
+}
+
+var _tt;
+function showToast(msg){var el=document.getElementById("toast");el.innerHTML=msg;el.classList.add("on");clearTimeout(_tt);_tt=setTimeout(function(){el.classList.remove("on");},2600);}
+
+renderMarkers();
+
+// ── PWA ──────────────────────────────────────
+// Install prompt
+var _deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",function(e){
+  e.preventDefault();_deferredPrompt=e;
+  showInstallBanner();
+});
+window.addEventListener("appinstalled",function(){
+  hideInstallBanner();showToast("&#127866; BeerWalk instalada correctamente");
+});
+
+function showInstallBanner(){
+  var el=document.getElementById("installBanner");
+  if(el)el.classList.add("on");
+}
+function hideInstallBanner(){
+  var el=document.getElementById("installBanner");
+  if(el)el.classList.remove("on");
+}
+function installApp(){
+  if(!_deferredPrompt)return;
+  _deferredPrompt.prompt();
+  _deferredPrompt.userChoice.then(function(r){
+    if(r.outcome==="accepted")showToast("Instalando BeerWalk...");
+    _deferredPrompt=null;hideInstallBanner();
+  });
+}
+
+// Register service worker
+if("serviceWorker" in navigator){
+  var swCode='const CACHE="beerwalk-v1";const ASSETS=["/"];self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));});self.addEventListener("fetch",e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response("Offline",{status:503}))));});';
+  var blob=new Blob([swCode],{type:"application/javascript"});
+  var swUrl=URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(function(){});
+}
+
+</script>
+</body>
+</html>
