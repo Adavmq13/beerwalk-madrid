@@ -1,0 +1,29 @@
+{
+  "name": "beerwalk-madrid",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Encuentra tu ruta craft en Madrid. Web + app nativa iOS/Android con Capacitor.",
+  "scripts": {
+    "sync": "cap sync",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android",
+    "build:ios": "cap build ios",
+    "build:android": "cap build android",
+    "run:ios": "cap run ios",
+    "run:android": "cap run android",
+    "icons": "python3 scripts/gen_icons.py"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/geolocation": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/share": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.0"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "appId": "es.adavmq13.beerwalk",
+  "appName": "BeerWalk Madrid",
+  "webDir": "www",
+  "loggingBehavior": "none",
+  "backgroundColor": "#F7F7F5",
+  "zoomEnabled": false,
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": false,
+    "backgroundColor": "#F7F7F5",
+    "webContentsDebuggingEnabled": false
+  },
+  "android": {
+    "backgroundColor": "#F7F7F5",
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#F7F7F5",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP",
+      "splashFullScreen": true,
+      "splashImmersive": false
+    },
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "DEFAULT",
+      "hidden": false
+    }
+  }
+}

@@ -1,0 +1,30 @@
+# Dependencias de la app nativa
+node_modules/
+
+# Plataformas generadas por `npx cap add` (se regeneran con npm install + cap add)
+ios/
+android/
+
+# Espejo que consume webDir; lo genera scripts/sync_www.sh
+www/
+
+# Build monolitico que genera scripts/build_standalone.py
+index-standalone.html
+
+# Excepciones: ios/ y android/ se regeneran con cap add, pero los ficheros
+# de firma y de configuracion que anadas a mano conviene conservarlos.
+!ios/**/*.xcconfig
+!android/gradle.properties
+
+# Firma de Android: nunca en el repo
+*.keystore
+*.jks
+keystore.properties
+
+# macOS
+.DS_Store
+
+# Editores
+.idea/
+.vscode/
+*.swp
