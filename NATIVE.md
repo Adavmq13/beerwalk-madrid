@@ -72,49 +72,55 @@ npx cap sync
 El script edita el `Info.plist` con `plistlib`, no con expresiones regulares, así
 que no puede dejar el XML corrupto. Es idempotente: reejecutarlo no duplica nada.
 
-## 4. La clave de Google Maps
+## 4. Google Maps: fuera de la app
 
-Este es el paso que más gente se salta y luego no entiende.
+No hay nada que configurar. Google se elimino del proyecto.
 
-`index.html` lleva incrustada una clave de Google Maps para dos cosas:
+Antes la app usaba dos APIs sueltas, no el mapa:
 
-- **Places API** → horarios de apertura (`fetchHours`)
-- **Routes API** → la ruta por calles reales (`computeRoutes`)
+- **Places API** -> horarios de apertura (`fetchHours`)
+- **Routes API** -> el trazado de la ruta (`computeRoutes`)
 
-Antes de nada: **la clave actual no funciona**, ni en la web ni aquí. Google
-devuelve `403` en las dos APIs, y el mensaje de Places dice literalmente *"You
-must enable Billing on the Google Cloud Project"*. Se comprobó con peticiones
-directas a la API: no es un problema de restricciones de dominio, es que al
-proyecto le falta facturación y las APIs activadas. En la web actual eso significa
-que los horarios no salen y las rutas se dibujan como líneas rectas.
+El mapa siempre fue Leaflet con teselas de CARTO. No necesita clave, ni
+facturacion, ni cuenta, y funciona dentro de la app nativa sin cambios.
 
-Arreglo, en la consola de Google Cloud:
+Las dos APIs de Google se quitaron por dos motivos:
 
-1. **Activar la facturación** del proyecto.
-2. **Habilitar Maps JavaScript API, Places API (New) y Routes API.** Cada una se
-   activa por separado; activar una no habilita las otras.
-3. **Restringir la clave.** Para la web, el dominio de GitHub Pages. Para la app
-   nativa, las peticiones salen de otro origen:
+1. **No funcionaban.** El proyecto de Google Cloud no tenia facturacion, asi que
+   ambas devolvian `403`; el mensaje de Places decia *"You must enable Billing on
+   the Google Cloud Project"*. El efecto era silencioso: la web publicaba rutas
+   en linea recta y sin horarios, sin error visible.
+2. **Los terminos del EEE.** Desde el 8 de julio de 2025, un proyecto con
+   facturacion en el Espacio Economico Europeo (Espana lo es) no puede mostrar
+   contenido de Places junto a un mapa que no sea de Google. La app hacia justo
+   eso: horarios de Places sobre un mapa de CARTO.
 
-| Plataforma | Origen de las peticiones |
-|---|---|
-| iOS | `capacitor://localhost` |
-| Android | `https://localhost` |
+Los horarios ahora salen de un campo `oh` opcional en el registro de cada local,
+en sintaxis de OpenStreetMap. Ver el README.
 
-Opciones para las restricciones:
+### Si algun dia quieres volver a Google
 
-1. **Añadir esos orígenes** a las restricciones HTTP de la clave existente.
-2. **Crear una clave nueva** solo para móvil y ponerla en `index.html` en lugar
-   de la actual. Más limpio: separas el consumo de la web del de las apps, y si
-   la clave móvil se filtra solo afecta a la app.
+No lo recomiendo, pero para que conste: la via que cumple los terminos del EEE
+es usar **el mapa de Google**, no el de CARTO, junto con el Places UI Kit. Eso
+cambia el aspecto del mapa por completo. Y cargar Google Maps JS dentro de una
+app nativa va ademas contra los terminos de Google para iOS, asi que en la
+tienda de apps no valdria.
 
-Para publicar, mejor la segunda.
+### Rutas: OSRM
 
-Aunque la clave falle, la app arranca y el mapa se ve bien (los tiles son de
-CARTO, no de Google). Los dos efectos son degradados y silenciosos: los horarios
-simplemente no aparecen, y la ruta se dibuja como una línea recta discontinua con
-tiempos estimados a 5 km/h. No hay error visible en pantalla, así que conviene
-comprobarlo explícitamente al probar.
+El trazado viene de `router.project-osrm.org`, que es un servidor publico de
+demostracion. Su uso previsto es evaluacion y desarrollo, no trafico real, y no
+tiene SLA ni garantia de disponibilidad.
+
+Para un proyecto personal o con pocos usuarios aguanta. Si la app creciera, lo
+correcto seria montarlo en una maquina propia y cambiar la URL dentro de
+`generateRoute()`.
+
+Cuando OSRM no responde la app no se rompe: cae a la estimacion en linea recta
+con tiempos a 5 km/h y lo avisa con el texto "Estimaci\u00f3n de tiempos". La
+peticion lleva un `AbortController` con 8 s de timeout, asi que tampoco se queda
+colgada si el servidor deja de responder.
+
 
 ## 5. Zonas seguras y notch
 
@@ -190,10 +196,14 @@ certificación de desarrollo y no llegará a usuarios reales.
 **iOS cierra la app al pedir la ubicación.** Falta
 `NSLocationWhenInUseUsageDescription`. Ejecuta `python3 scripts/patch_native.py`.
 
-**Los horarios no salen y la ruta va en línea recta.** Es la clave de Google, y
-probablemente no por las restricciones de dominio sino por facturación o APIs sin
-activar. La sección 4 lo explica. El síntoma es confuso porque la app funciona y
-no muestra ningún error.
+**La ruta sale en línea recta y pone "Estimación de tiempos".** OSRM no ha
+respondido. Puede ser que el servidor de demostración esté saturado. Comprueba
+la URL a mano; si responde, es un problema de red del dispositivo. La app sigue
+funcionando, solo pierde el trazado por calles.
+
+**Un local dice "Cerrado ahora" pero el bar está abierto.** No consulta ningún
+servicio: lee el campo `oh` del registro. Si no existe, no muestra nada. Si
+existe y está mal escrito, se interpreta mal. La sintaxis está en el README.
 
 **`npx cap sync` no copia los cambios.** `webDir` es `www/`, no la raíz. Ejecuta
 `sh scripts/sync_www.sh` antes de sincronizar. Olvidar este paso es el fallo más

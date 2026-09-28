@@ -52,35 +52,48 @@ npm run open:ios      # compila y abre Xcode
 npm run open:android  # compila y abre Android Studio
 ```
 
-## Estado de la clave de Google
+## Mapa y rutas: sin Google
 
-`index.html` lleva incrustada una clave de Google Maps para Places (horarios) y
-Directions (ruta por calles). **Hoy esa clave no funciona**, ni en la web ni en
-la app nativa:
+La app no depende de Google Maps en nada. Se quitó por completo:
 
-| API | Respuesta | Efecto |
-|---|---|---|
-| Directions | `403 PERMISSION_DENIED` | la ruta se dibuja como línea recta discontinua, con tiempos estimados a 5 km/h |
-| Places | `403 REQUEST_DENIED` ("You must enable Billing") | los horarios no se muestran |
+| Antes (Google) | Ahora |
+|---|---|
+| Mapa: Leaflet + CARTO | **igual**, nunca fue de Google |
+| Rutas por calles: Directions API | **OSRM**, motor libre, sin clave |
+| Horarios: Places API | **campo `oh`** en el registro del local, opcional |
 
-Google responde igual desde `adavmq13.github.io` que desde un origen no
-permitido, así que no es una cuestión de restricciones de dominio: al proyecto
-de la clave le falta facturación y tener las APIs activadas. La app no se rompe
-porque ambos caminos tienen fallback, pero son dos funciones que hoy no hacen
-nada.
+Dos motivos:
 
-Antes de publicar hay que arreglarlo en la consola de Google Cloud:
+1. **La clave no funcionaba.** El proyecto de Google Cloud no tenía
+   facturación, así que Places y Routes devolvían `403`. La web publicaba
+   rutas en línea recta y sin horarios, sin mostrar ningún error.
+2. **Los términos del EEE.** Desde el 8 de julio de 2025, para proyectos con
+   facturación en el Espacio Económico Europeo (España lo es), Google no
+   permite mostrar contenido de Places junto a un mapa que no sea de Google.
+   Eso era justo lo que hacía la app: horarios de Places sobre un mapa de CARTO.
 
-1. Activar la facturación del proyecto.
-2. Habilitar **Maps JavaScript API**, **Places API (New)** y **Routes API**.
-3. Restringir la clave por dominio para la web y, si publicas la app, permitir
-   también `capacitor://localhost` y `https://localhost`, o crear una clave
-   aparte para móvil.
+OSRM (`router.project-osrm.org`) es un motor de enrutado libre, sin clave y con
+CORS abierto. Ojo: ese servidor es de pruebas y su uso previsto es evaluación y
+desarrollo, no tráfico real. Si la app cresciera habría que montar una instancia
+propia. Si OSRM falla, la app cae a la estimación en línea recta con tiempos a
+5 km/h, igual que antes.
 
-Está detallado en [NATIVE.md](NATIVE.md).
+### Horarios
 
-## Licencia de datos
+Cada local puede llevar un campo `oh` con la sintaxis de OpenStreetMap, y la
+ficha lo traduce a "Abierto ahora" / "Cerrado ahora" con la hora de cierre:
 
-Los datos de locales provienen de Google Places y sus reseñas. Google Places
-API tiene condiciones de uso propias y un límite de solicitudes que puede
-requerir un plan de pago. Antes de publicar en las tiendas conviene revisarlo.
+```js
+{"n": "Beer Station", "oh": "Mo-Fr 12:00-23:00; Sa,Su 12:00-01:00"}
+```
+
+Se admiten rangos (`Mo-Fr`), listas (`Mo,We,Fr`), `24/7`, `off` y tramos que
+cruzan medianoche. La hora de cierre solo se muestra si el local abre ese día.
+
+## Nota sobre los datos
+
+Las coordenadas vienen de geocodificación y son imprecisas: hay 19 pares de
+locales a menos de 60 m entre sí. Ahora que las rutas son reales, eso se nota
+como tramos de "1 min · 1m" entre paradas contiguas. No se ha tocado el fichero
+de datos, pero conviene revisar esas coordenadas si se quiere que las rutas
+salgan limpias.
