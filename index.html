@@ -925,7 +925,25 @@ async function generateRoute(){
   cands.sort(function(a,bb){return(bb._score-haversine(center,bb)*15)-(a._score-haversine(center,a)*15);});
   var n=Math.min(w.stops,cands.length);if(n===0){showToast("Sin locales en esta zona. Prueba otra.");return;}
   var pool=cands.slice(0,Math.min(n*3,cands.length)),route=[],rem=pool.slice(),cur=center;
-  while(route.length<n&&rem.length>0){var best=0,bestD=Infinity;rem.forEach(function(b,i){var d=haversine(cur,b);if(d<bestD){bestD=d;best=i;}});route.push(rem[best]);cur=rem[best];rem.splice(best,1);}
+  // En el centro de Madrid hay bares a 8-10 m uno del otro (Echegaray 21 y
+  // 23, p.ej.). El voraz puro los elegia seguidos y la rutaodia decir "1 min
+  // · 1m desde la anterior", que no es andar por Madrid. Se exige una
+  // separacion minima entre paradas consecutivas.
+  var MIN_LEG=0.12;   // km
+  while(route.length<n&&rem.length>0){
+    var best=-1,bestD=Infinity;
+    rem.forEach(function(b,i){
+      var d=haversine(cur,b);
+      if(d<MIN_LEG)return;          // ya estamos praticamente ahi
+      if(d<bestD){bestD=d;best=i;}
+    });
+    if(best<0){
+      // Ninguno cumple la separacion (zona muy densa): el mas lejano.
+      rem.forEach(function(b,i){var d=haversine(cur,b);if(d<bestD){bestD=d;best=i;}});
+    }
+    if(best<0)break;
+    route.push(rem[best]);cur=rem[best];rem.splice(best,1);
+  }
   ST.route=route;rl.clearLayers();
   var tl={1:"1 hora",2:"2 horas",3:"3 horas",5:"Toda la noche"};
   document.getElementById("rrTitle").textContent=w.preset||"Ruta craft personalizada";
