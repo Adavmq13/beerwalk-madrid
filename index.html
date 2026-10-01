@@ -540,7 +540,7 @@ function normTipo(ti){
   if(t.indexOf("bar craft")>=0||t.indexOf("craft beer")>=0)return{label:"Bar craft",cat:"confirmed"};
   return{label:ti,cat:"pending"};
 }
-B.forEach(function(b){var nt=normTipo(b.ti);b._label=nt.label;b._cat=nt.cat;b._s=norm(b.n+" "+(nd(b.ad)||""));});
+B.forEach(function(b){var nt=normTipo(b.ti);b._label=nt.label;b._cat=nt.cat;b._s=norm(b.n+" "+(nd(b.ad)||""));b._fam=b.est||"";});
 
 function craftScore(b){
   var s=0;
@@ -715,6 +715,7 @@ function getF(){
     if(ST.filt.cat&&b._cat!==ST.filt.cat)return false;
     if(ST.filt.rated&&!(b.ra>0))return false;
     if(ST.filt.web&&!nd(b.we))return false;
+    if(ST.filt.fam&&b._fam.indexOf(ST.filt.fam)<0)return false;
     for(var i=0;i<terms.length;i++){if(b._s.indexOf(terms[i])<0)return false;}
     return true;
   });
@@ -738,9 +739,9 @@ function renderMarkers(){
 // Filters
 function setTab(btn,cat){
   document.querySelectorAll(".chip[data-cat]").forEach(function(x){x.classList.remove("on");});
-  btn.classList.add("on");ST.filt.cat=cat;closeSheet();renderMarkers();
+  btn.classList.add("on");ST.filt.cat=cat;ST.filt.fam="";closeSheet();renderMarkers();
 }
-function toggleChip(btn,k){ST.filt[k]=!ST.filt[k];btn.classList.toggle("on",ST.filt[k]);closeSheet();renderMarkers();}
+function toggleChip(btn,k){ST.filt[k]=!ST.filt[k];ST.filt.fam="";btn.classList.toggle("on",ST.filt[k]);closeSheet();renderMarkers();}
 document.getElementById("srchIn").addEventListener("input",function(){ST.q=this.value;renderMarkers();});
 
 // BAR SHEET
@@ -1126,7 +1127,9 @@ function showQuizResult(){
     "</div>"+
     "<div class='qr-flavors'><div class='qr-flavors-l'>Notas de sabor</div><div class='qr-flavors-t'>"+meta.f+"</div></div>"+
     (alts.length?"<div class='qr-alts-title'>Tambi&#233;n podr&#237;as probar</div>"+altsHtml:"")+
-    "<button class='qr-bar-btn' onclick='showBarsFromQuiz()'>&#128205; Ver locales compatibles</button>"+
+    // El texto se ajusta a si hay estilos anotados: prometer "compatibles"
+    // sin datos seria repetir el error que tenia antes.
+    "<button class='qr-bar-btn' onclick='showBarsFromQuiz()'>&#128205; "+quizBarLabel()+"</button>"+
     "<div style='display:flex;gap:8px;margin-top:8px'>"+
       "<button class='btn btn-ghost btn-sm' style='flex:1' onclick='renderIntro()'>&#8635; Repetir</button>"+
       "<button class='btn btn-ink btn-sm' style='flex:1' onclick='closeQuiz()'>Cerrar</button>"+
@@ -1134,7 +1137,57 @@ function showQuizResult(){
     "<div class='qr-disc'>Recomendaci\u00f3n basada en similitud coseno + perfil de usuario. La disponibilidad depende de cada local.</div>"+
     "</div>";
 }
-function showBarsFromQuiz(){closeQuiz();ST.filt.cat="";document.querySelectorAll(".chip[data-cat]").forEach(function(x,i){x.classList.toggle("on",i===0);});renderMarkers();showToast("Locales compatibles con tu perfil");}
+// Etiqueta del boton: "compatibles" solo si algun local trae el campo "est".
+// Si no, ofrece el filtro por tipo, que es lo que la app puede cumplir.
+function quizBarLabel(){
+  var res=getRecommendations(ST.quiz.answers);
+  var hay=B.some(function(b){return b._fam;});
+  return hay?"Ver locales de tu estilo":"Ver locales para tu plan";
+}
+
+// El boton del quiz.
+//
+// Antes mentia: decia "locales compatibles con tu perfil" y lo unico que
+// hacia era quitar el filtro de tipo, o sea mostrar los 140 locales. No
+// puede filtrar por estilo de cerveza porque ningun local tiene anotado
+// cual sirve, asi que en vez de fingir hace dos cosas, segun haya datos:
+//
+//   - Si algun local tiene el campo "est" (familia de estilo), filtra por el.
+//   - Si no, aplica el filtro que el plan del quiz si sugiere de verdad: una
+//     cita encaja con taprooms, una ruta intensa con bar craft. Y lo dice.
+//
+// El plan se saca de la respuesta 3, que es lo unico del quiz que se puede
+// traducir a algo que la app sabe de cada local.
+var PLAN_CAT={0:"confirmed",1:"brewpub",2:"",3:"brewpub",4:"confirmed"};
+function showBarsFromQuiz(){
+  closeQuiz();
+  var res=getRecommendations(ST.quiz.answers);
+  var fams=[];
+  res.slice(0,4).forEach(function(r){if(r.family&&fams.indexOf(r.family)<0)fams.push(r.family);});
+  ST.q="";
+  document.getElementById("srchIn").value="";
+  document.querySelectorAll(".chip[data-cat]").forEach(function(x,i){x.classList.toggle("on",i===0);});
+  ST.filt.rated=false;ST.filt.web=false;
+  document.getElementById("chRated").classList.remove("on");
+  document.getElementById("chWeb").classList.remove("on");
+
+  var conEstilo=B.filter(function(b){return fams.some(function(f){return b._fam.indexOf(f)>=0;});});
+  if(conEstilo.length){
+    ST.filt.cat="";ST.filt.fam=fams.join("|");
+    renderMarkers();
+    showToast(conEstilo.length+" locales de "+res[0].family);
+    return;
+  }
+
+  var cat=PLAN_CAT[ST.quiz.answers[2]]||"";
+  ST.filt.cat=cat;ST.filt.fam="";
+  document.querySelectorAll(".chip[data-cat]").forEach(function(x,i){
+    x.classList.toggle("on",!!cat&&x.getAttribute("data-cat")===cat);
+  });
+  renderMarkers();
+  var plan=(QUESTIONS[2].opts[ST.quiz.answers[2]]||{l:""}).l;
+  showToast(getF().length+" locales para un plan «"+plan+"»");
+}
 
 
 // GEO

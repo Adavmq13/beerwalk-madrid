@@ -90,6 +90,34 @@ ficha lo traduce a "Abierto ahora" / "Cerrado ahora" con la hora de cierre:
 Se admiten rangos (`Mo-Fr`), listas (`Mo,We,Fr`), `24/7`, `off` y tramos que
 cruzan medianoche. La hora de cierre solo se muestra si el local abre ese día.
 
+### Estilos de cerveza
+
+El quiz calcula un estilo, pero los locales no traen ese dato, así que el botón
+del resultado no puede filtrar por estilo: aplica el filtro que el plan sí
+sugiere de verdad (una cita → taprooms, una ruta intensa → bar craft) y lo dice en
+el aviso.
+
+Para que filtre por estilo de verdad, añade el campo opcional `est` al local con
+una de estas siete familias:
+
+| `est` |
+|---|
+| `IPA / Pale Ale` |
+| `Lager / Pilsner` |
+| `Wheat Beer` |
+| `Sour / Wild` |
+| `Stout / Porter` |
+| `Strong Ale` |
+| `Fruit Beer` |
+
+```js
+{"n": "Hopper", "est": "IPA / Pale Ale"}
+```
+
+En cuanto algún local lo tenga, el botón pasa a decir "Ver locales de tu estilo" y
+filtra por la familia del resultado y sus tres alternativas. Se combina con la
+búsqueda y con los demás filtros, y cualquier chip lo limpia.
+
 ## Nota sobre los datos
 
 Las coordenadas vienen de geocodificación y son imprecisas: hay 19 pares de
