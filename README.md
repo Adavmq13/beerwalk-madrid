@@ -174,10 +174,13 @@ distribución real, que va de 52 a 95.
 
 ## Fecha de los datos
 
-Los 140 locales vienen de un volcado de Google Places. El fichero se subió al
-repo el **15 de mayo de 2026** y el dataset no ha cambiado desde entonces, así
-que esa es la fecha de los datos. Es una cota superior: el volcado pudo hacerse
-unos días antes.
+Los 132 locales vienen de un volcado de Google Places. El fichero se subió al
+repo el **15 de mayo de 2026** y el dataset no se ha vuelto a tocar desde
+entonces, así que esa es la fecha de los datos. Es una cota superior: el volcado
+pudo hacerse unos días antes.
+
+Los 8 locales que se retiraron el 1 de octubre de 2026 son una decisión de
+alcance posterior, no un cambio en los datos: conservan la fecha de mayo.
 
 Sin esa fecha, la app presenta con la misma seguridad un bar abierto hoy y uno
 que cerró en junio. Ahora cada ficha lo dice en el bloque de datos, y a partir
@@ -197,9 +200,62 @@ ficha dice "Revisado" en vez de "Datos de":
 El aviso depende solo de la edad, no de que tenga `v`: un local revisado en
 enero de 2024 tiene 33 meses y también avisa.
 
+## Alcance: 132 locales, y por qué no son 140
+
+Ocho locales se retiraron de la selección el 1 de octubre de 2026. Cada uno salió
+por una razón comprobada, no por una sospecha:
+
+**Cinco no son de cerveza.** Se verificó contra sus propias webs:
+
+| # | Local | Qué dice su web |
+|---|---|---|
+| 13 | VinoPremier | "Tienda online de vinos, cervezas, destilados". E-commerce, sin sitio al que ir |
+| 35 | Bandida Tapas & Cocktail Bar | "Tapas & Cocktail Bar". **0 menciones de cerveza o craft** en 3.922 palabras |
+| 57 | Fat Cats Cocktail House | "Coctelería clandestina". **0 menciones de cerveza o craft** |
+| 69 | Madrid & Darracott | "Tienda de vinos en Madrid, eventos, catas". Es vino |
+| 115 | CERVETRI Cervezas Online | "Tienda comprar cervezas online". E-commerce, sin sitio al que ir |
+
+**Tres están fuera del ámbito**, que es la Comunidad de Madrid:
+
+| # | Local | Dónde |
+|---|---|---|
+| 74 | OKasional Beer | Barcelona (41.3823, 2.1625) |
+| 118 | BrewPub Rooftop | Usaquén, Bogotá, Colombia |
+| 137 | Hopa Beer Denda | Donostia / San Sebastián (43.3228, −1.9738) |
+
+Estos tres no son un error de captura: los datos son correctos, el problema es
+de alcance. Un generador de rutas que trabaja con radios de 800 m no les saca
+ningún partido.
+
+### Tres que se sospecharon y se quedaron
+
+La revisión por nombre marcó a tres que sí son de cerveza. Se quedan:
+
+| # | Local | Por qué se queda |
+|---|---|---|
+| 9 | Brew Wild Pizza Bar | Su web: *"Pizza y Cervezas Artesanas"*, *"increíble selección de cervezas artesanales"* |
+| 46 | Moraima Vinateros | Su web es **"Cervecerías Moraima"**, 3 menciones de cerveza y 0 de vino. El nombre viene de la calle, Camino de los Vinateros |
+| 127 | LUIGIS | El nombre dice *"cocktails tapas & craft beers"* |
+
+### Un apunte sobre las categorías
+
+**#35 Bandida y #57 Fat Cats estaban clasificados como "Bar craft beer"** y son
+coctelerías. Eso no viene de la captura sino de la categoría que asignó Google
+Places, que a veces se equivoca. Si algún día se reimporta el volcado, conviene
+revisar las categorías con el mismo método: leer la web del local, no su nombre.
+
+### Los que se dejan, aunque no sean del centro
+
+Siete locales están en la corona (Valdemoro, Alcalá de Henares, Bustarviejo,
+Cabanillas de la Sierra). **Se quedan**: son alcanzables a pie o en transporte,
+el generador de rutas los funciona, y para una selección de cerveza de la región
+tienen sentido. El límite que se ha trazado es la Comunidad, no el municipio.
+
+Los ocho retirados siguen en el historial de git, por si el ámbito cambia.
+
 ## Nota sobre los datos
 
-Las coordenadas vienen de geocodificación y son imprecisas: hay 19 pares de
+Las coordenadas vienen de geocodificación y son imprecisas: hay 16 pares de
 locales a menos de 60 m entre sí. Ahora que las rutas son reales, eso se nota
 como tramos de "1 min · 1m" entre paradas contiguas. No se ha tocado el fichero
 de datos, pero conviene revisar esas coordenadas si se quiere que las rutas
