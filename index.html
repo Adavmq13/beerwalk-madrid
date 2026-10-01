@@ -217,6 +217,7 @@ button,input{font-family:inherit;}
 .rr-stop-meta{font-size:11px;color:var(--ink-4);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .rr-stop-reason{font-size:11px;color:var(--ink-3);font-style:italic;line-height:1.4;}
 .rr-stop-walk{font-size:11px;color:var(--acc-d);margin-top:2px;}
+.rr-stop-falta{font-size:12px;line-height:1.5;color:var(--acc-d);background:var(--acc-l);border-radius:10px;padding:10px 12px;margin-bottom:14px;}
 .rr-foot{padding:8px 16px calc(32px + var(--sab));flex-shrink:0;display:flex;gap:6px;}
 
 /* ── QUIZ ───────────────────────────────────── */
@@ -1115,17 +1116,21 @@ async function generateRoute(){
   }
   ST.route=route;rl.clearLayers();
   var tl={1:"1 hora",2:"2 horas",3:"3 horas",5:"Toda la noche"};
+  function paradasTxt(n){return n===1?"1 parada":n+" paradas";}
   document.getElementById("rrTitle").textContent=w.preset||"Ruta craft personalizada";
-  document.getElementById("rrMeta").textContent=route.length+" paradas \u00b7 "+(tl[w.hours]||"")+" \u00b7 Calculando...";
+  document.getElementById("rrMeta").textContent=paradasTxt(route.length)+" \u00b7 "+(tl[w.hours]||"")+" \u00b7 Calculando...";
   document.getElementById("rrList").innerHTML="<div style='padding:16px;color:var(--ink-4);font-size:13px'>Calculando ruta por calles...</div>";
   document.getElementById("rteResult").classList.add("open");
 
   var segTimes=[],segDists=[],realRoute=false;
+  // Con una sola parada no hay tramo que calcular. OSRM responde 400 a un
+  // unico punto, asi que ni se pregunta: no hay ruta que dibujar.
   try{
     // OSRM, motor de rutas libre: sin clave ni facturacion, y el servidor
     // publico responde con CORS abierto. Se pide con timeout porque, si esta
     // saturado, puede tardar; si falla, el catch de abajo dibuja la
     // estimacion en linea recta.
+    if(route.length<2)throw new Error("Una sola parada");
     var coords=route.map(function(b){return b.lo+","+b.la;}).join(";");
     var ctrl=new AbortController();
     var to=setTimeout(function(){ctrl.abort();},8000);
@@ -1149,8 +1154,19 @@ async function generateRoute(){
   if(route.length>1){try{map.fitBounds(L.latLngBounds(route.map(function(b){return[b.la,b.lo];})).pad(.25),{animate:true});}catch(e){}}
   var totalMins=segTimes.reduce(function(a,b){return a+b;},0);
   var avgSc=Math.round(route.reduce(function(a,b){return a+b._score;},0)/route.length);
-  document.getElementById("rrMeta").textContent=route.length+" paradas \u00b7 "+(tl[w.hours]||"")+(totalMins>0?" \u00b7 "+totalMins+" min andando":"")+" \u00b7 Score "+avgSc;
+  document.getElementById("rrMeta").textContent=paradasTxt(route.length)+" \u00b7 "+(tl[w.hours]||"")+(totalMins>0?" \u00b7 "+totalMins+" min andando":"")+" \u00b7 Score "+avgSc;
   var list=document.getElementById("rrList");list.innerHTML="";
+  // Pides 3 horas y salen 1 parada. No es un fallo del generador: en Retiro solo
+  // hay 1 local a menos de 800 m. Antes se devolvia en silencio y parecia que la
+  // app estaba rota, asi que se dice cuanto habia y cuanto has pedido.
+  if(route.length<w.stops){
+    var falta=document.createElement("div");
+    falta.className="rr-stop-falta";
+    falta.innerHTML=paradasTxt(route.length)+" de las "+w.stops+" que pediste. Solo hay "+
+      cands.length+(cands.length===1?" local":" locales")+" a menos de 800 m de aqu\u00ed. "+
+      "Mueve el punto de salida o pide menos paradas para llenar el recorrido.";
+    list.appendChild(falta);
+  }
   route.forEach(function(b,i){
     var div=document.createElement("div");div.className="rr-stop";
     var walkHtml=i>0&&segTimes[i-1]!==undefined?"<div class='rr-stop-walk'>"+segTimes[i-1]+" min"+(segDists[i-1]?" \u00b7 "+Math.round(segDists[i-1])+"m":"")+" desde la anterior</div>":"";

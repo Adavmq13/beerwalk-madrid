@@ -256,7 +256,21 @@ Los ocho retirados siguen en el historial de git, por si el ámbito cambia.
 ## Nota sobre los datos
 
 Las coordenadas vienen de geocodificación y son imprecisas: hay 16 pares de
-locales a menos de 60 m entre sí. Ahora que las rutas son reales, eso se nota
-como tramos de "1 min · 1m" entre paradas contiguas. No se ha tocado el fichero
-de datos, pero conviene revisar esas coordenadas si se quiere que las rutas
-salgan limpias.
+locales a menos de 60 m entre sí. **En una versión anterior eso producía tramos
+de "1 min · 1m" entre paradas contiguas**, porque el generador cogía dos locales
+a 40 m y los ponía seguidos.
+
+Ahora no pasa: `generateRoute()` aplica un mínimo de 120 m por tramo
+(`MIN_LEG`, en km), así que un local demasiado cerca se salta y se coge el
+siguiente. Hay una consecuencia honesta de esto, y la app la dice en vez de
+callarse: **la selección está muy concentrada**. En Malasana hay 22 locales a
+menos de 800 m; en Retiro, **1**; en Chamberí, 2. Si pides 5 paradas desde
+Retiro, solo te puedes dar 1, y el resultado lleva un aviso que lo explica.
+
+Zonas con selección de sobra: Malasana, Chueca, Lavapiés, Centro, Malasaña-
+Chueca, Ríos Rosas, Retiro-Chueca. Zonas flojas: Retiro (salvo Fogg Bar),
+Chamberí, Vallecas, Carabanchel, Tetuán.
+
+El fichero de datos no se ha tocado, así que las coordenadas siguen siendo las
+que son. Si algún día se quieren rutas más limpias, el sitio a arreglar es el
+geocodificado, no el generador.
