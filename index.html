@@ -542,6 +542,43 @@ function normTipo(ti){
 }
 B.forEach(function(b){var nt=normTipo(b.ti);b._label=nt.label;b._cat=nt.cat;b._s=norm(b.n+" "+(nd(b.ad)||""));b._fam=b.est||"";});
 
+// ── ANTIGUEDAD DE LOS DATOS ─────────────────────────────
+// Los 140 locales vienen de un volcado de Google Places. El fichero se
+// subio al repo el 15 de mayo de 2026 y el dataset no ha cambiado desde
+// entonces (mismo sha), asi que esa es la fecha de los datos. Es una
+// cota superior: el volcado pudo hacerse unos dias antes.
+//
+// Sin esto, la app presenta con la misma seguridad un bar abierto hoy y
+// uno que cerro en junio. Cada local puede llevar su propio campo "v"
+// ("2026-10") si lo revisas a mano, y entonces se muestra esa fecha en vez
+// de la global.
+var DATOS_DE="2026-05";
+var MESES={ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
+var ETIQUETA_MES={0:"enero",1:"febrero",2:"marzo",3:"abril",4:"mayo",5:"junio",6:"julio",7:"agosto",8:"septiembre",9:"octubre",10:"noviembre",11:"diciembre"};
+
+// Acepta "2026-05" (ISO) y "2026-may" (nombre corto). La app escribe ISO, pero
+// a mano es mas comodo escribir el mes con letra.
+function mesDesde(ref){
+  var t=String(ref||"").trim().toLowerCase();
+  if(/^\d{1,2}$/.test(t))return +t-1;
+  return MESES[t.slice(0,3)];
+}
+
+function datosAntiguedad(b){
+  var ref=(b&&b.v)||DATOS_DE;
+  var p=String(ref).split("-");
+  var y=+p[0],m=mesDesde(p[1]);
+  if(!y||m===undefined||m<0||m>11)return {txt:"Edad de los datos desconocida",txtAviso:"",meses:99,revisado:false,cuando:"?"};
+  var d=new Date();
+  var meses=(d.getFullYear()-y)*12+(d.getMonth()-m);
+  var cuando=ETIQUETA_MES[m]+" de "+y;
+  var txt=(b&&b.v?"Revisado":"Datos de")+" "+cuando;
+  // A partir de un ano el aviso es explicito: puede que el local haya cerrado.
+  var txtAviso=(b&&b.v)?("Ultima revision: "+cuando+". Puede que el local haya cerrado o cambiado desde entonces.")
+                  :("Datos de "+cuando+". Puede que el local haya cerrado o cambiado desde entonces.");
+  return {txt:txt,txtAviso:txtAviso,cuando:cuando,meses:meses,revisado:!!(b&&b.v)};
+}
+
 function craftScore(b){
   var s=0;
   if(b.ra>=4.8)s+=40;else if(b.ra>=4.5)s+=30;else if(b.ra>=4.0)s+=20;else if(b.ra>0)s+=10;
@@ -766,6 +803,15 @@ async function showSheet(b){
   var total=gv.up+gv.dn;
   var pctTxt=total>0?Math.round(gv.up/total*100)+"% lo recomienda para una ruta craft.":"S\u00e9 el primero en valorarlo.";
   var inRoute=ST.route&&ST.route.some(function(r){return r.id===b.id;});
+  var antig=datosAntiguedad(b);
+  // Con un ano o mas de antiguedad la ficha lo dice: los datos son una foto de
+  // un momento y el local puede haber cerrado. Solo depende de la edad: un
+  // local "revisado" en enero de 2024 tiene 33 meses y tambien avisa.
+  var avisoEdad=antig.meses>=12
+    ? "<div style='display:flex;align-items:flex-start;gap:7px;margin-top:12px;padding:9px 11px;background:#FEF3C7;border-radius:var(--r)'>"+
+        "<span style='font-size:14px;line-height:1.3'>&#9888;</span>"+
+        "<span style='font-size:11px;color:var(--acc-d);line-height:1.5'>"+antig.txtAviso+"</span></div>"
+    : "";
   var saved=ST.saved[b.id];
 
   document.getElementById("bsContent").innerHTML=
@@ -817,7 +863,9 @@ async function showSheet(b){
         "<div class='bs-info-item'><div class='lbl'>Web</div><div class='val "+(nd(b.we)?"":"dim")+"'>"+(nd(b.we)?"<a href='"+b.we+"' target='_blank' onclick='event.stopPropagation()'>Abrir &#8599;</a>":"No disponible")+"</div></div>"+
         "<div class='bs-info-item'><div class='lbl'>Distancia</div><div class='val'>"+distStr+"</div></div>"+
         "<div class='bs-info-item'><div class='lbl'>Tiempo andando</div><div class='val"+(minsWalk?"":" dim")+"'>"+(minsWalk?minsWalk+" min":"No aplica")+"</div></div>"+
+        "<div class='bs-info-item'><div class='lbl'>"+(antig.revisado?"Revisado":"Datos de")+"</div><div class='val"+(antig.revisado?"":" dim")+"'>"+antig.cuando+"</div></div>"+
       "</div>"+
+      avisoEdad+
     "</div>"+
 
     "<div class='bs-comm'>"+

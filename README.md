@@ -118,6 +118,31 @@ En cuanto algún local lo tenga, el botón pasa a decir "Ver locales de tu estil
 filtra por la familia del resultado y sus tres alternativas. Se combina con la
 búsqueda y con los demás filtros, y cualquier chip lo limpia.
 
+## Fecha de los datos
+
+Los 140 locales vienen de un volcado de Google Places. El fichero se subió al
+repo el **15 de mayo de 2026** y el dataset no ha cambiado desde entonces, así
+que esa es la fecha de los datos. Es una cota superior: el volcado pudo hacerse
+unos días antes.
+
+Sin esa fecha, la app presenta con la misma seguridad un bar abierto hoy y uno
+que cerró en junio. Ahora cada ficha lo dice en el bloque de datos, y a partir
+de un año añade un aviso:
+
+> ⚠ Datos de mayo de 2026. Puede que el local haya cerrado o cambiado desde
+> entonces.
+
+Cada local puede llevar su propio campo `v` con la fecha en que lo revisaste a
+mano. Acepta ISO (`"2026-10"`) o el mes con letra (`"2026-oct"`), y entonces la
+ficha dice "Revisado" en vez de "Datos de":
+
+```js
+{"n": "Hopper", "v": "2026-10"}
+```
+
+El aviso depende solo de la edad, no de que tenga `v`: un local revisado en
+enero de 2024 tiene 33 meses y también avisa.
+
 ## Nota sobre los datos
 
 Las coordenadas vienen de geocodificación y son imprecisas: hay 19 pares de
