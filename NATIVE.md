@@ -4,29 +4,52 @@ Todo el HTML, CSS y JS es el mismo que la web. Capacitor lo empaqueta en un
 binario nativo, que añade permisos en tiempo de ejecución, share del sistema y
 botón atrás.
 
+## Dónde está el proyecto ahora
+
+Preparado todo lo que se puede preparar sin Xcode ni Android Studio:
+
+- Node 24.21.0 LTS instalado, en el `PATH` de forma persistente
+- 104 paquetes de npm, con Capacitor 8.5.2
+- `ios/` y `android/` generados, con los cuatro plugins resueltos
+- Iconos reales instalados en las dos plataformas
+- Permisos y `configChanges` aplicados y validados
+- `Info.plist`, `AndroidManifest.xml` y los dos `capacitor.config.json` correctos
+
+**Falta una sola cosa: instalar las herramientas de compilación.** El código
+está listo; falta la cadena de herramientas. Ver el aviso de espacio en disco en
+el apartado 1.
+
 ## 1. Requisitos
 
-| Herramienta | Para qué |
-|---|---|
-| **Node.js 22+** | CLI de Capacitor 8 |
-| **Xcode 26+** | compilar iOS (desde la App Store) |
-| **Android Studio Otter (2025.2.1)+** | compilar Android, incluye el SDK y Java 21 |
-| **CocoaPods** | solo si generas iOS con el gestor de paquetes CocoaPods |
+| Herramienta | Para qué | Estado en esta máquina |
+|---|---|---|
+| **Node.js 22+** | CLI de Capacitor 8 | **Instalado** (v24.21.0 LTS en `~/.local`) |
+| **Xcode 26+** | compilar iOS | **Falta instalar** (~30 GB) |
+| **Android Studio** | compilar Android, incluye el SDK | **Falta instalar** (~10 GB) |
+| **JDK 17+** | Gradle de Android | **Falta instalar** (AGP 8.13 pide 17 o superior) |
+| CocoaPods | — | **No hace falta**: Capacitor 8 usa Swift Package Manager |
 
-El gestor de paquetes de iOS lo decide el CLI al crear la plataforma. Por defecto
-usa Swift Package Manager y no necesitas CocoaPods; si lo prefieres:
+Node se instaló como tarball oficial descomprimido en
+`~/.local/node-v24.21.0`, con el `PATH` añadido a `~/.zshrc`. No se usó Homebrew
+ni `sudo`.
 
-```sh
-npx cap add ios --packagemanager CocoaPods
-```
+CocoaPods no hace falta en iOS: el CLI genera `ios/App/CapApp-SPM/Package.swift` y
+los cuatro plugins entran por SPM. Solo haría falta con
+`npx cap add ios --packagemanager CocoaPods`.
 
-Comprobar antes de seguir:
+### Ojo con el espacio en disco
+
+Quedan unos **40 GB**. Xcode instalado ocupa 30 o más y Android Studio con el SDK
+otros 10. **No caben los dos.** Antes de instalar hay que decidir una plataforma
+o liberar espacio.
+
+Comprobar:
 
 ```sh
 node -v
 npx cap --version
-xcodebuild -version
-java -version
+xcodebuild -version     # solo si instalaste Xcode
+java -version           # solo si instalaste JDK
 ```
 
 Para firmar hace falta una **cuenta de Apple Developer** (99 USD/año) y una de
@@ -38,25 +61,36 @@ cámbialo en `capacitor.config.json` por algo que te pertenezca, por ejemplo
 
 ```sh
 npm install
-npm run icons        # resources/ -> iconos que usa la app nativa
-sh scripts/sync_www.sh
+npm run icons        # resources/ -> iconos base
 ```
 
 `scripts/gen_icons.py` no necesita Node ni ImageMagick: escribe los PNG a mano con
 `zlib`. Si cambias el diseño de la jarra, edita `mug_layers()` y vuelve a lanzarlo.
 
-`npm run icons` es un atajo al script de Python. Si prefieres no depender de
-Python, `npx @capacitor/assets generate --iconBackgroundColor '#111111'` hace lo
-mismo leyendo los PNG de `resources/`.
+No se usa `@capacitor/assets` (el generador oficial) porque arrastra `sharp`, que
+exige compilar un binario nativo. Los iconos salen del script de Python.
 
 ## 3. Crear las plataformas
 
+Las plataformas **ya están generadas** en `ios/` y `android/`. Si algún día
+borras esas carpetas y hay que rehacerlas:
+
 ```sh
-npx cap add ios
-npx cap add android
-python3 scripts/patch_native.py
-npx cap sync
+npm run prepare:native
 ```
+
+Ese atajo hace las cuatro cosas en orden, que es el orden correcto:
+
+```sh
+sh scripts/sync_www.sh      # 1. espejo publicable a www/
+python3 scripts/patch_icons.py   # 2. iconos reales en ios/ y android/
+python3 scripts/patch_native.py  # 3. permisos y config
+npx cap sync                # 4. copia a las plataformas nativas
+```
+
+`patch_icons.py` sustituye el logo de Capacitor por el nuestro: el `AppIcon` de
+iOS y los quince ficheros de `mipmap-*` de Android. Escala por vecino más
+próximo, decodifica y codifica PNG con `zlib` a mano y no necesita Pillow.
 
 `patch_native.py` hace lo que Capacitor no genera solo:
 
@@ -69,8 +103,13 @@ npx cap sync
   `density` el WebView se recarga al cambiar de densidad y se pierde el estado
   del mapa.
 
+Además **retira** los permisos que la app no usa, sobre todo
+`NSPhotoLibraryUsageDescription`: no hay ninguna función que guarde imágenes, y
+un permiso de fotos sin justificar se pregunta en la revisión de App Store.
+
 El script edita el `Info.plist` con `plistlib`, no con expresiones regulares, así
-que no puede dejar el XML corrupto. Es idempotente: reejecutarlo no duplica nada.
+que no puede dejar el XML corrupto. Los tres scripts son idempotentes:
+reejecutarlos no duplica nada.
 
 ## 4. Google Maps: fuera de la app
 
@@ -153,6 +192,12 @@ para "bares cerca de mí" en Madrid.
 Después de cada cambio en `index.html`:
 
 ```sh
+npm run prepare:native
+```
+
+O, si los iconos no han cambiado, el atajo corto:
+
+```sh
 sh scripts/sync_www.sh && npx cap sync
 ```
 
@@ -182,7 +227,7 @@ en todas las actualizaciones.
 Cambias `index.html`, y:
 
 ```sh
-sh scripts/sync_www.sh && npx cap sync
+npm run prepare:native
 ```
 
 En iOS hay que subir un build nuevo a App Store Connect en cada versión
@@ -195,6 +240,13 @@ certificación de desarrollo y no llegará a usuarios reales.
 
 **iOS cierra la app al pedir la ubicación.** Falta
 `NSLocationWhenInUseUsageDescription`. Ejecuta `python3 scripts/patch_native.py`.
+
+**El icono sale el de Capacitor.** `npx cap add` pone el suyo por defecto.
+Ejecuta `python3 scripts/patch_icons.py`.
+
+**`npx cap` no se encuentra.** Node no está en el `PATH`. Comprueba
+`~/.zshrc`: debería tener
+`export PATH="$HOME/.local/node-v24.21.0/bin:$PATH"`.
 
 **La ruta sale en línea recta y pone "Estimación de tiempos".** OSRM no ha
 respondido. Puede ser que el servidor de demostración esté saturado. Comprueba

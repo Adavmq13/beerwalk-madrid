@@ -19,12 +19,24 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IOS_PLIST = os.path.join(ROOT, "ios", "App", "App", "Info.plist")
 
 # Sin NSLocationWhenInUseUsageDescription iOS mata la app al pedir la posición.
+# Es el único permiso que se pide. No se declara NSPhotoLibraryUsageDescription:
+# la app no guarda imágenes (native.js solo hace share, portapapeles, ubicación,
+# avisos y botón atrás), y un permiso de fotos que no se usa hay que justificarlo
+# en la revisión de App Store.
 IOS_USAGE = {
     "NSLocationWhenInUseUsageDescription":
         "BeerWalk usa tu ubicacion para mostrarte los bares craft mas cercanos.",
-    "NSPhotoLibraryUsageDescription":
-        "BeerWalk accede a tus fotos solo si eliges guardar una imagen de una ruta.",
 }
+
+# Claves que este script dejaba antes y que no deben estar. Se borran si
+# aparecen, para que el script sea autocorrector y no solo aditivo.
+IOS_QUITAR = [
+    "NSPhotoLibraryUsageDescription",
+    "NSPhotoLibraryAddUsageDescription",
+    "NSCameraUsageDescription",
+    "NSLocationAlwaysAndWhenInUseUsageDescription",
+    "NSLocationAlwaysUsageDescription",
+]
 
 # SystemBars (plugin de core) exige que el aspecto de la barra lo controle
 # el view controller.
@@ -51,10 +63,21 @@ def patch_ios():
             plist[key] = value
             changed += 1
 
-    if changed:
+    # Permisos que no hacen falta: se eliminan en vez de solo no añadirse, para
+    # que quien lo ejecuto con una version anterior del script se quede limpio.
+    quitadas = []
+    for key in IOS_QUITAR:
+        if key in plist:
+            del plist[key]
+            quitadas.append(key)
+
+    if changed or quitadas:
         with open(IOS_PLIST, "wb") as f:
             plistlib.dump(plist, f, sort_keys=True)
-        print("  iOS: Info.plist actualizado (%d claves)" % changed)
+        print("  iOS: Info.plist actualizado (%d claves, %d permisos retirados)"
+              % (changed, len(quitadas)))
+        for key in quitadas:
+            print("       retirado %s: la app no lo usa" % key)
     else:
         print("  iOS: Info.plist ya estaba al dia")
     return True
