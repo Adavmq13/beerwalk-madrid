@@ -754,7 +754,12 @@ async function showSheet(b){
   var refLng=ST.userLng||map.getCenter().lng;
   var dkm=haversine({la:refLat,lo:refLng},b);
   var distStr=dkm<1?Math.round(dkm*1000)+"m":dkm.toFixed(1)+"km";
-  var minsWalk=Math.max(1,Math.round(dkm*1.3/5*60));
+  // Un local a 8000 km (hay cervecerias en Bogota y en Barcelona en los datos)
+  // no está "a 124944 minutos andando": eso es un dato fuera de alcance, no un
+  // paseo. A partir de 60 km se deja de dar el tiempo a pie y se dice que está
+  // fuera de Madrid.
+  var LEJOS_KM=60;
+  var minsWalk=dkm>LEJOS_KM?0:Math.max(1,Math.round(dkm*1.3/5*60));
   var distSrc=ST.userLat?"desde tu ubicaci\u00f3n":"desde el centro del mapa";
   var stars="";for(var i=0;i<5;i++)stars+=i<Math.round(b.ra)?"&#9733;":"&#9734;";
   var gv=ST.votes["g_"+b.id]||{up:0,dn:0},mv=ST.votes["m_"+b.id]||null;
@@ -767,7 +772,7 @@ async function showSheet(b){
     "<div class='bs-head'>"+
       "<div class='bs-type' style='color:"+cat.c+"'>"+cat.l+"</div>"+
       "<div class='bs-name'>"+b.n+"</div>"+
-      "<div class='bs-meta'>"+(b.ra>0?stars+" "+b.ra.toFixed(1)+(b.re>0?" &middot; "+b.re.toLocaleString()+" rese&ntilde;as":"")+" &middot; ":"")+"<span style='color:var(--ink-4)'>"+distStr+" &middot; "+minsWalk+" min andando</span></div>"+
+      "<div class='bs-meta'>"+(b.ra>0?stars+" "+b.ra.toFixed(1)+(b.re>0?" &middot; "+b.re.toLocaleString()+" rese&ntilde;as":"")+" &middot; ":"")+"<span style='color:var(--ink-4)'>"+distStr+(minsWalk?" &middot; "+minsWalk+" min andando":" &middot; fuera de Madrid")+"</span></div>"+
       "<div class='bs-loc'>&#128205; "+(nd(b.ad)||"Madrid")+"</div>"+
     "</div>"+
 
@@ -811,7 +816,7 @@ async function showSheet(b){
         "<div class='bs-info-item'><div class='lbl'>Tel&eacute;fono</div><div class='val "+(nd(b.ph)?"":"dim")+"'>"+disp(b.ph)+"</div></div>"+
         "<div class='bs-info-item'><div class='lbl'>Web</div><div class='val "+(nd(b.we)?"":"dim")+"'>"+(nd(b.we)?"<a href='"+b.we+"' target='_blank' onclick='event.stopPropagation()'>Abrir &#8599;</a>":"No disponible")+"</div></div>"+
         "<div class='bs-info-item'><div class='lbl'>Distancia</div><div class='val'>"+distStr+"</div></div>"+
-        "<div class='bs-info-item'><div class='lbl'>Tiempo andando</div><div class='val'>"+minsWalk+" min</div></div>"+
+        "<div class='bs-info-item'><div class='lbl'>Tiempo andando</div><div class='val"+(minsWalk?"":" dim")+"'>"+(minsWalk?minsWalk+" min":"No aplica")+"</div></div>"+
       "</div>"+
     "</div>"+
 
