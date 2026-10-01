@@ -601,13 +601,27 @@ var PRESETS=[
 var ST={filt:{cat:"",rated:false,web:false},q:"",userLat:null,userLng:null,votes:JSON.parse(localStorage.getItem("cbm_v")||"{}"),saved:JSON.parse(localStorage.getItem("cbm_s")||"{}"),cur:null,wiz:{lat:null,lng:null,hours:2,stops:3,tipo:null,rating:0,preset:null},route:[],quiz:{step:0,answers:[]}};
 
 // ── MAP ──────────────────────────────────────
+// CARTO exige clave desde 2025: sin ella devuelve cada tesela con la marca de
+// agua "API KEY REQUIRED" dibujada encima, y el mapa sale hecho un mosaico de
+// carteles. Se pide gratis en https://carto.com/basemaps/apikey (te llega al
+// correo en un minuto, sin crear cuenta).
+//   - No comercial: 5 millones de teselas al mes.
+//   - Comercial: 1 millón.
+// En ambos casos la atribucion tiene que seguir visible, por eso el texto de
+// abajo cita a OpenStreetMap y a CARTO, que es lo que exigen sus terminos.
 var map=L.map("map",{center:[40.4237,-3.7033],zoom:14,zoomControl:false,attributionControl:true});
+var CARTO_KEY="";
+var CARTO_STYLE="light_all";   // Positron: el fondo claro que usa la app
+
 function addTiles(m){
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/"+CARTO_STYLE+"/{z}/{x}/{y}{r}.png?key="+CARTO_KEY,{
     subdomains:["a","b","c","d"],
     maxZoom:19,
-    attribution:'&copy; <a href="https://carto.com/">CARTO</a>'
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
   }).addTo(m);
+}
+if(!CARTO_KEY){
+  console.warn("[BeerWalk] Falta la clave de CARTO: el mapa saldra con la marca de agua 'API KEY REQUIRED'. Pidela gratis en https://carto.com/basemaps/apikey y pegala en CARTO_KEY.");
 }
 addTiles(map);
 var lg=L.layerGroup().addTo(map),rl=L.layerGroup().addTo(map);
