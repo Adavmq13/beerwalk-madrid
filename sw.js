@@ -50,8 +50,9 @@ self.addEventListener("activate", (event) => {
         )
       )
       .then(() => self.clients.claim())
-      // claim()接管 paginas ya abiertas, pero su HTML sigue siendo el viejo
-      // hasta que recargan. Avisarles evita la sensacion de app rota.
+      // claim() toma el control de las paginas ya abiertas, pero su HTML
+      // sigue siendo el viejo hasta que recargan. Avisarles evita que parezca
+      // que la app se ha roto.
       .then(() =>
         self.clients.matchAll({ type: "window" }).then((clients) =>
           clients.forEach((c) => c.postMessage({ type: "new-version" }))
@@ -85,7 +86,13 @@ self.addEventListener("fetch", (event) => {
 
     if (isHTML) {
       event.respondWith(
-        fetch(req)
+        // cache:"no-cache" no desactiva el service worker: sigue habiendo red
+        // primero y, si no hay red, se sirve la cache. Lo que hace es obligar
+        // al navegador a revalidar con el origen en vez de reutilizar su copia
+        // local. Sin esto, GitHub Pages (max-age=600) hacia que un despliegue
+        // nuevo tardase hasta 10 minutos en llegar a quien ya habia visitado la
+        // web, y ademas el SW guardaba esa copia vieja.
+        fetch(req, { cache: "no-cache" })
           .then((res) => {
             if (res && res.ok) {
               const copy = res.clone();
