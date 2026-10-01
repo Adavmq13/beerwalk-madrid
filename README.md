@@ -118,6 +118,30 @@ En cuanto algún local lo tenga, el botón pasa a decir "Ver locales de tu estil
 filtra por la familia del resultado y sus tres alternativas. Se combina con la
 búsqueda y con los demás filtros, y cualquier chip lo limpia.
 
+## Enlaces: web, red social u otro
+
+El chip decía "Con web" y metía 18 enlaces que eran solo un Instagram, más un
+Facebook, un WhatsApp de reservas y un acortador. Prometía web y no cumplía.
+
+Ahora los enlaces se clasifican por **dominio**, no buscando subcadenas en la
+URL (con `indexOf("t.co")`, "wanderlus**t.co**m" contaba como acortador):
+
+| Tipo | Locales | Chip |
+|---|---|---|
+| Web de verdad | 92 | "Con web" |
+| Instagram | 15 | "📷 Con redes" |
+| Facebook | 3 | "📷 Con redes" |
+| WhatsApp | 1 | "📷 Con redes" |
+| Acortador (bit.ly → un PDF) | 1 | — |
+| Sin enlace | 28 | — |
+
+Los dos chips son excluyentes: un local tiene un solo enlace, así que activar
+uno desactiva el otro. Antes, activar los dos daba un 0 sin explicación.
+
+En la ficha, el botón y el campo de datos dicen lo que son: "📷 Instagram",
+"💬 WhatsApp", "🔗 Enlace". Y los 5 puntos de web del score solo se conceden
+con una web real, no con un Instagram.
+
 ## El Craft Score
 
 Puntuación de 0 a 99 con cuatro pesos: **55** por la nota ajustada, **20** por

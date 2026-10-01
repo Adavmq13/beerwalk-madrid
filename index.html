@@ -319,6 +319,7 @@ button,input{font-family:inherit;}
     <button class="chip" data-cat="bottle" onclick="setTab(this,'bottle')">Tiendas</button>
     <button class="chip" id="chRated" onclick="toggleChip(this,'rated')">&#11088; Con rating</button>
     <button class="chip" id="chWeb" onclick="toggleChip(this,'web')">Con web</button>
+    <button class="chip" id="chSocial" onclick="toggleChip(this,'social')">&#128247; Con redes</button>
   </div>
 </div>
 
@@ -540,7 +541,44 @@ function normTipo(ti){
   if(t.indexOf("bar craft")>=0||t.indexOf("craft beer")>=0)return{label:"Bar craft",cat:"confirmed"};
   return{label:ti,cat:"pending"};
 }
-B.forEach(function(b){var nt=normTipo(b.ti);b._label=nt.label;b._cat=nt.cat;b._s=norm(b.n+" "+(nd(b.ad)||""));b._fam=b.est||"";});
+// ── CLASIFICACION DE ENLACES ───────────────────
+// El chip decia "Con web" y metia 18 enlaces que son solo un Instagram, mas
+// un Facebook, un WhatsApp de reservas y un acortador que lleva a un PDF.
+// El chip prometia web y no cumplia. Ahora se distingue: web de verdad, red
+// social u otro enlace, y cada uno se enseña con su nombre.
+var TIPOS_LINK={
+  web:       {ic:"&#128279;",lbl:"Web"},
+  instagram: {ic:"&#128247;",lbl:"Instagram"},
+  facebook:  {ic:"&#128241;",lbl:"Facebook"},
+  x:         {ic:"&#120143;",lbl:"X"},
+  whatsapp:  {ic:"&#128172;",lbl:"WhatsApp"},
+  otro:      {ic:"&#128279;",lbl:"Enlace"}
+};
+// Se mira solo el dominio, no la URL entera. Con indexOf sobre la URL, "t.co"
+// aparecia dentro de "wanderlust.com" y cuatro webs reales acababan clasificadas
+// como acortador.
+var DOMINIO_LINK=function(u){
+  var s=String(u).toLowerCase();
+  var m=s.match(/^[a-z]+:\/\/([^/?#]+)/);
+  var h=m?m[1]:s.split("/")[0];
+  return h.replace(/^www\./,"");
+};
+var SOCIALES={instagram:1,facebook:1,x:1,whatsapp:1,tiktok:1,youtube:1,linktr:1};
+var ACORTADORES={ "bit.ly":1,"t.co":1,"goo.gl":1,"tinyurl.com":1,"ow.ly":1,"is.gd":1,"buff.ly":1 };
+
+function clasificaLink(u){
+  if(!nd(u))return null;
+  var h=DOMINIO_LINK(u);
+  if(SOCIALES[h])return h;
+  // Los subdominios de una red social cuentan como la red (fb.com, instagr.am...)
+  var base=h.split(".").slice(-2).join(".");
+  if(base.indexOf("instagram.com")>=0||base.indexOf("facebook.com")>=0||base.indexOf("twitter.com")>=0)return base.indexOf("instagram.com")>=0?"instagram":base.indexOf("facebook.com")>=0?"facebook":"x";
+  if(h.indexOf("wa.me")===0||h.indexOf("whatsapp.com")>=0)return "whatsapp";
+  // Un acortador no es una web propia: el destino puede ser un PDF.
+  if(ACORTADORES[h]||ACORTADORES[base])return "otro";
+  return "web";
+}
+B.forEach(function(b){var nt=normTipo(b.ti);b._label=nt.label;b._cat=nt.cat;b._s=norm(b.n+" "+(nd(b.ad)||""));b._fam=b.est||"";b._link=clasificaLink(b.we);});
 
 // ── ANTIGUEDAD DE LOS DATOS ─────────────────────────────
 // Los 140 locales vienen de un volcado de Google Places. El fichero se
@@ -606,9 +644,9 @@ function craftScore(b){
   s+=Math.min(1,Math.log(1+r)/Math.log(3001))*20;
   // 20 pts por tipo: un bar craft es mejor parada de una ruta que una tienda
   s+=({confirmed:20,brewpub:15,bottle:10})[b._cat]!==undefined?({confirmed:20,brewpub:15,bottle:10})[b._cat]:5;
-  // 5 pts por web. Senal debil y deliberadamente menor que antes: 18 de las
-  // 112 "webs" son solo un Instagram.
-  s+=nd(b.we)?5:0;
+  // 5 pts por web de verdad. Senal debil y deliberadamente menor que antes.
+  // Un Instagram no cuenta como web: 18 de los 112 enlaces lo eran.
+  s+=b._link==="web"?5:0;
   return Math.min(99,Math.round(s));
 }
 // Los umbrales van con la distribucion real del score (rango 52-95 sobre estos
@@ -790,7 +828,8 @@ function getF(){
   return B.filter(function(b){
     if(ST.filt.cat&&b._cat!==ST.filt.cat)return false;
     if(ST.filt.rated&&!(b.ra>0))return false;
-    if(ST.filt.web&&!nd(b.we))return false;
+    if(ST.filt.web&&b._link!=="web")return false;
+    if(ST.filt.social&&b._link!=="instagram"&&b._link!=="facebook"&&b._link!=="x")return false;
     if(ST.filt.fam&&b._fam.indexOf(ST.filt.fam)<0)return false;
     for(var i=0;i<terms.length;i++){if(b._s.indexOf(terms[i])<0)return false;}
     return true;
@@ -817,7 +856,21 @@ function setTab(btn,cat){
   document.querySelectorAll(".chip[data-cat]").forEach(function(x){x.classList.remove("on");});
   btn.classList.add("on");ST.filt.cat=cat;ST.filt.fam="";closeSheet();renderMarkers();
 }
-function toggleChip(btn,k){ST.filt[k]=!ST.filt[k];ST.filt.fam="";btn.classList.toggle("on",ST.filt[k]);closeSheet();renderMarkers();}
+// "Con web" y "Con redes" son excluyentes por naturaleza: un local tiene un
+// solo enlace. Si se activan los dos a la vez salia un 0 sin explicacion, asi
+// que activar uno desactiva el otro.
+var EXCLUYENDOS={web:"chSocial",social:"chWeb"};
+function toggleChip(btn,k){
+  ST.filt[k]=!ST.filt[k];
+  if(ST.filt[k]&&EXCLUYENDOS[k]){
+    var otro=EXCLUYENDOS[k],campo=otro==="chWeb"?"web":"social";
+    ST.filt[campo]=false;
+    document.getElementById(otro).classList.remove("on");
+  }
+  ST.filt.fam="";
+  btn.classList.toggle("on",!!ST.filt[k]);
+  closeSheet();renderMarkers();
+}
 document.getElementById("srchIn").addEventListener("input",function(){ST.q=this.value;renderMarkers();});
 
 // BAR SHEET
@@ -899,7 +952,7 @@ async function showSheet(b){
       "<div class='bs-section-title'>Datos</div>"+
       "<div class='bs-info'>"+
         "<div class='bs-info-item'><div class='lbl'>Tel&eacute;fono</div><div class='val "+(nd(b.ph)?"":"dim")+"'>"+disp(b.ph)+"</div></div>"+
-        "<div class='bs-info-item'><div class='lbl'>Web</div><div class='val "+(nd(b.we)?"":"dim")+"'>"+(nd(b.we)?"<a href='"+b.we+"' target='_blank' onclick='event.stopPropagation()'>Abrir &#8599;</a>":"No disponible")+"</div></div>"+
+        "<div class='bs-info-item'><div class='lbl'>"+(b._link?(TIPOS_LINK[b._link]||TIPOS_LINK.otro).lbl:"Web")+"</div><div class='val "+(nd(b.we)?"":"dim")+"'>"+(nd(b.we)?"<a href='"+b.we+"' target='_blank' onclick='event.stopPropagation()'>Abrir &#8599;</a>":"No disponible")+"</div></div>"+
         "<div class='bs-info-item'><div class='lbl'>Distancia</div><div class='val'>"+distStr+"</div></div>"+
         "<div class='bs-info-item'><div class='lbl'>Tiempo andando</div><div class='val"+(minsWalk?"":" dim")+"'>"+(minsWalk?minsWalk+" min":"No aplica")+"</div></div>"+
         "<div class='bs-info-item'><div class='lbl'>"+(antig.revisado?"Revisado":"Datos de")+"</div><div class='val"+(antig.revisado?"":" dim")+"'>"+antig.cuando+"</div></div>"+
@@ -919,7 +972,7 @@ async function showSheet(b){
     "<div class='bs-actions'>"+
       "<button class='act-primary' onclick='window.open(\""+b.gm+"\",\"_blank\")'>&#128205; Abrir en Google Maps</button>"+
       "<div class='act-row'>"+
-        (nd(b.we)?"<button class='act-sec' onclick='window.open(\""+b.we+"\",\"_blank\")'>&#128279; Web</button>":"<button class='act-sec' disabled style='opacity:.35'>Sin web</button>")+
+        (nd(b.we)?"<button class='act-sec' onclick='window.open(\""+b.we+"\",\"_blank\")'>"+(TIPOS_LINK[b._link]||TIPOS_LINK.otro).ic+" "+(TIPOS_LINK[b._link]||TIPOS_LINK.otro).lbl+"</button>":"<button class='act-sec' disabled style='opacity:.35'>Sin web</button>")+
         "<button class='act-sec "+(saved?"saved":"")+"' id='btnSave' onclick='toggleSave()'>"+
           (saved?"&#9829; Guardado":"&#9825; Guardar")+
         "</button>"+
