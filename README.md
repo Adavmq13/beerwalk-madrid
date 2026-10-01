@@ -118,6 +118,36 @@ En cuanto algún local lo tenga, el botón pasa a decir "Ver locales de tu estil
 filtra por la familia del resultado y sus tres alternativas. Se combina con la
 búsqueda y con los demás filtros, y cualquier chip lo limpia.
 
+## El Craft Score
+
+Puntuación de 0 a 99 con cuatro pesos: **55** por la nota ajustada, **20** por
+volumen de reseñas, **20** por el tipo de local y **5** por tener web.
+
+La nota se ajusta hacia la media del conjunto en proporción a cuántas reseñas
+hay. Es la forma estándar de no fiarse de muestras pequeñas:
+
+```
+ajustada = (nota × reseñas + media_global × 60) / (reseñas + 60)
+```
+
+Con los datos actuales la media global es 4,575. La diferencia se nota:
+
+| Local | Nota | Reseñas | Ajustada | Score |
+|---|---|---|---|---|
+| WHISKY CLUB MADRID | 5,0 | 540 | 4,96 | **95** |
+| Cervecería Dichosita | 5,0 | 363 | 4,94 | 88 |
+| Cerveza El Lobo | 5,0 | **1** | 4,58 | **60** |
+
+Un 5,0 con una sola reseña no es lo mismo que un 5,0 con 540, y el score ya no
+los trata igual. Antes ambos daban 85 y el texto decía "rating 5.0" sin más.
+
+Antes el score salía con 10 valores distintos para 140 locales y 30 empataban.
+Ahora son 37 valores y el empate máximo es de 10.
+
+Las etiquetas ("Imprescindible craft", "Muy recomendable", "Buena opción",
+"Pendiente de validar") tienen umbrales 88 / 75 / 62, ajustados a la
+distribución real, que va de 52 a 95.
+
 ## Fecha de los datos
 
 Los 140 locales vienen de un volcado de Google Places. El fichero se subió al

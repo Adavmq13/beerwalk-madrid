@@ -579,19 +579,45 @@ function datosAntiguedad(b){
   return {txt:txt,txtAviso:txtAviso,cuando:cuando,meses:meses,revisado:!!(b&&b.v)};
 }
 
-function craftScore(b){
-  var s=0;
-  if(b.ra>=4.8)s+=40;else if(b.ra>=4.5)s+=30;else if(b.ra>=4.0)s+=20;else if(b.ra>0)s+=10;
-  if(b._cat==="confirmed")s+=25;else if(b._cat==="brewpub")s+=20;else if(b._cat==="bottle")s+=15;
-  if(nd(b.we))s+=10;
-  if(b.re>100)s+=10;else if(b.re>30)s+=5;
-  return Math.min(99,s);
+// ── CRAFT SCORE ──────────────────────────────
+// La version anterior partia la nota en 4 tramos, con lo que un 4.2 y un 4.4
+// puntuaban igual, y daba el mismo peso a una nota de 540 resenas que a una de
+// 1. Con eso el score salia con 10 valores distintos para 140 locales y 30
+// empataban a 70/99: precision que no existia.
+//
+// Ahora la nota se usa entera y se pondera por la confianza que merece:
+// una nota de 5.0 con una sola reseña vale mucho menos que la misma nota con
+// 540. Se "encoge" hacia la media del conjunto, que es la forma estandar de no
+// fiarse de las muestras pequenas.
+var SCORE_PRIOR=0,SCORE_M=60;   // M = resenas necesarias para fiarse de la nota
+
+function notaAjustada(b){
+  var r=Math.max(0,+b.re||0);
+  return (r*(+b.ra||0)+SCORE_M*SCORE_PRIOR)/(r+SCORE_M);
 }
+function craftScore(b){
+  var adj=notaAjustada(b);
+  var r=Math.max(0,+b.re||0);
+  var s=0;
+  // 55 pts por la nota ajustada, de 3.0 a 5.0
+  s+=Math.max(0,Math.min(1,(adj-3)/2))*55;
+  // 20 pts por volumen de resenas, en escala logaritmica: pasar de 10 a 100
+  // reviews cuenta mas que de 3000 a 6000
+  s+=Math.min(1,Math.log(1+r)/Math.log(3001))*20;
+  // 20 pts por tipo: un bar craft es mejor parada de una ruta que una tienda
+  s+=({confirmed:20,brewpub:15,bottle:10})[b._cat]!==undefined?({confirmed:20,brewpub:15,bottle:10})[b._cat]:5;
+  // 5 pts por web. Senal debil y deliberadamente menor que antes: 18 de las
+  // 112 "webs" son solo un Instagram.
+  s+=nd(b.we)?5:0;
+  return Math.min(99,Math.round(s));
+}
+// Los umbrales van con la distribucion real del score (rango 52-95 sobre estos
+// 140 locales). Con los de antes, 25 locales salian "Imprescindible craft" y
+// ningun "Pendiente de validar", que no era lo que decian los numeros.
 function scoreLabel(sc){
-  if(sc>=85)return{t:"Imprescindible craft",c:"gr"};
-  if(sc>=70)return{t:"Muy recomendable",c:"gr"};
-  if(sc>=55)return{t:"Buena opci\u00f3n",c:"hi"};
-  if(sc>=40)return{t:"Opci\u00f3n correcta",c:""};
+  if(sc>=88)return{t:"Imprescindible craft",c:"gr"};
+  if(sc>=75)return{t:"Muy recomendable",c:"gr"};
+  if(sc>=62)return{t:"Buena opci\u00f3n",c:"hi"};
   return{t:"Pendiente de validar",c:""};
 }
 function getTags(b){
@@ -614,12 +640,23 @@ function getRecText(b){
   return parts.length?parts.join(", ")+".":"Local craft de Madrid.";
 }
 function getScoreWhy(b){
+  // Se enseña la nota ajustada y no solo la cruda, que es la que pesa de
+  // verdad. Con 1 reseña, decir "rating 5.0" a secas engaña.
   var p=[];
-  if(b.ra>=4.5)p.push("rating "+b.ra.toFixed(1));
-  if(b.re>50)p.push(b.re.toLocaleString()+" rese\u00f1as");
-  if(b._cat!=="pending")p.push("perfil craft "+b._label.toLowerCase());
+  if(b.ra>0){
+    // El ajuste hacia la media solo se atribuye al volumen si el volumen es
+    // de verdad bajo. Con 543 reseñas el ajuste es minimo y la causa es la nota.
+    var pocoVolumen=b.re<30;
+    p.push("nota "+b.ra.toFixed(1)+(
+      pocoVolumen
+        ?" (se ajusta a "+b._adj.toFixed(2)+" con solo "+b.re+(b.re===1?" reseña":" reseñas")+")"
+        :(Math.abs(b._adj-b.ra)>0.02?" (ajustada a "+b._adj.toFixed(2)+")":"")
+    ));
+  }
+  if(b.re>=30)p.push(b.re.toLocaleString()+" rese\u00f1as");
+  if(b._cat!=="pending")p.push("perfil "+b._label.toLowerCase());
   if(nd(b.we))p.push("web disponible");
-  return p.length?"Calculado por "+p.join(", ")+".":"Incluido en la base de datos craft de Madrid.";
+  return p.length?"Puntuado por "+p.join(", ")+".":"Incluido en la base de datos craft de Madrid.";
 }
 function getUseCase(b){
   if(b._cat==="brewpub")return{ic:"&#127867;",t:"Experiencia craft. Ideal para probar cervezas directamente vinculadas a productores artesanales."};
@@ -627,7 +664,9 @@ function getUseCase(b){
   if(b._cat==="confirmed")return{ic:"&#127866;",t:"Parada social. Buen ambiente y selecci\u00f3n craft durante la ruta."};
   return{ic:"&#128308;",t:"Local pendiente de validar su perfil craft."};
 }
-B.forEach(function(b){b._score=craftScore(b);});
+// Media de nota del conjunto: es hacia donde se encogen las muestras cortas.
+SCORE_PRIOR=B.reduce(function(a,b){return a+(+b.ra||0);},0)/B.length;
+B.forEach(function(b){b._adj=notaAjustada(b);b._score=craftScore(b);});
 
 var CAT={
   confirmed:{c:"#16A34A",l:"Bar craft"},
