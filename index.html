@@ -521,6 +521,16 @@ var QUESTIONS=[
 
 // ── LOGIC ────────────────────────────────────
 function nd(v){return(!v||v==="null"||v==="undefined"||v==="NaN"||String(v).trim()==="")?null:v;}
+
+// Normaliza texto para buscar: sin mayusculas, sin tildes y con espacios
+// colapsados. Sin esto, escribir "malasana" no encuentra "Malasana" ni
+// "lavapies" no encuentra "Lavapies", porque la comparaba con indexOf
+// exacto. Se aplica a lo que escribe el usuario y a lo que hay en el
+// registro, asi que los dos lados quedan en la misma forma.
+function norm(s){
+  if(!nd(s))return "";
+  return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
+}
 function disp(v,fb){return nd(v)||(fb||"No disponible");}
 function normTipo(ti){
   if(!ti)return{label:"No disponible",cat:"pending"};
@@ -530,7 +540,7 @@ function normTipo(ti){
   if(t.indexOf("bar craft")>=0||t.indexOf("craft beer")>=0)return{label:"Bar craft",cat:"confirmed"};
   return{label:ti,cat:"pending"};
 }
-B.forEach(function(b){var nt=normTipo(b.ti);b._label=nt.label;b._cat=nt.cat;});
+B.forEach(function(b){var nt=normTipo(b.ti);b._label=nt.label;b._cat=nt.cat;b._s=norm(b.n+" "+(nd(b.ad)||""));});
 
 function craftScore(b){
   var s=0;
@@ -698,12 +708,14 @@ function mkRouteIcon(n){
 }
 
 function getF(){
-  var q=ST.q.toLowerCase();
+  // Varias palabras, todas tienen que aparecer. Asi "chueca cerveza"
+  // encuentra los locales de Chueca cuyo nombre habla de cerveza.
+  var terms=norm(ST.q).split(" ").filter(Boolean);
   return B.filter(function(b){
     if(ST.filt.cat&&b._cat!==ST.filt.cat)return false;
     if(ST.filt.rated&&!(b.ra>0))return false;
     if(ST.filt.web&&!nd(b.we))return false;
-    if(q&&b.n.toLowerCase().indexOf(q)<0&&(b.ad||"").toLowerCase().indexOf(q)<0)return false;
+    for(var i=0;i<terms.length;i++){if(b._s.indexOf(terms[i])<0)return false;}
     return true;
   });
 }
