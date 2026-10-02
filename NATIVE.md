@@ -236,6 +236,61 @@ instalar la actualización. Los binarios firmados caducan a los 30 días para
 distribución en tienda; si mantienes la build más de eso, firmará con una
 certificación de desarrollo y no llegará a usuarios reales.
 
+## Antes de compilar: `npm run preflight`
+
+Un comando dice qué falta, en vez de abrir Xcode y encontrarse el error a los
+cinco minutos. Comprueba la cadena de herramientas, los dos proyectos nativos,
+que el dataset empaquetado coincide con `index.html` comparando el sha, y que el
+`appId` esté sincronizado en las tres plataformas. Sale con código 1 si falta
+algo, así que sirve en un script.
+
+```
+[  ok  ] Node v24.21.0
+[  ok  ] Capacitor CLI 8.5.2
+[ FALTA] Xcode no instalado
+[ FALTA] Java no instalado
+[  ok  ] El AppIcon es el nuestro (1024x1024)
+[  ok  ] iOS: dataset correcto (132 locales, sha 69c17db8137e19df)
+[ aviso] appId es.adavmq13.beerwalk
+```
+
+## Qué plataforma primero: iOS
+
+La recomendación es **iOS**, y por estos motivos:
+
+1. Es la plataforma nativa de la máquina. iOS se compila en el Mac, sin
+   emuladores rare ni cables ADB.
+2. El proyecto ya usa Swift Package Manager. No hay que instalar CocoaPods ni
+   resolver un `Podfile`.
+3. **Play Store pone una barrera que App Store no.** Una cuenta de desarrollador
+   personal nueva en Google Play tiene que sacar una prueba cerrada con al menos
+   12 testers durante 14 días antes de poder publicar. En App Store se publica
+   directamente.
+4. La integración ya está hecha: compartir con el sistema, botón atrás, zonas
+   seguras y permisos de ubicación.
+
+Android tiene un problema añadido aquí: AGP 8.13 pide **JDK 17 o superior**, que
+no está instalado, y el SDK de Android se instala aparte dentro de Android
+Studio. Son dos descargas grandes más.
+
+Cuando iOS esté publicado y quieras Android, el proyecto ya está generado: solo
+instalar el JDK y Android Studio, y `npm run preflight` lo dira.
+
+### Ojo: no caben los dos
+
+Quedan unos 40 GB. Xcode instalado ocupa 30 o más. Si decides hacer iOS primero,
+después de instalarlo conviene:
+
+```sh
+# Los runtimes de simulador son lo que mas pesa. Deja solo los que uses.
+xcrun simctl delete unavailable
+xcrun simctl list runtimes
+
+# Y la cache de compilacion:
+rm -rf ~/Library/Developer/Xcode/DerivedData
+rm -rf ~/Library/Caches/com.apple.dt.Xcode
+```
+
 ## Problemas frecuentes
 
 **iOS cierra la app al pedir la ubicación.** Falta

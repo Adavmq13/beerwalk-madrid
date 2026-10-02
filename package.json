@@ -8,6 +8,7 @@
     "patch:native": "python3 scripts/patch_native.py",
     "patch:icons": "python3 scripts/patch_icons.py",
     "prepare:native": "npm run mirror && npm run patch:icons && npm run patch:native && cap sync",
+    "preflight": "python3 scripts/preflight.py",
     "sync": "cap sync",
     "open:ios": "cap open ios",
     "open:android": "cap open android",

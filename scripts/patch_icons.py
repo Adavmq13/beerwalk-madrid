@@ -83,7 +83,10 @@ def read_png(path):
 
     if depth != 8:
         raise ValueError("solo PNG de 8 bits, %s es de %d" % (path, depth))
-    canales = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(ctype)
+    if ctype == 3:
+        raise ValueError("PNG con paleta en %s: hace falta la tabla PLTE, "
+                         "que este lector no implementa" % path)
+    canales = {0: 1, 2: 3, 4: 2, 6: 4}.get(ctype)
     if canales is None:
         raise ValueError("tipo de color PNG no soportado (%d) en %s" % (ctype, path))
 
@@ -115,22 +118,29 @@ def read_png(path):
         filas.append(line)
         prev = line
 
-    # A RGB, aplanado sobre blanco: el PNG de origen es opaco, pero por si
-    # acaso se compone el alfa en vez de tirarlo.
+    # A RGB, con el alfa compuesto sobre blanco. Hay que tratar los cuatro casos
+    # por separado: antes solo se contemplaban gris y RGBA, y una imagen de 3
+    # canales caia en la rama "gris" y salia como (r, r, r). El naranja de la
+    # jarra (180, 83, 9) se leia (180, 180, 180).
     rgb = bytearray(w * h * 3)
     for y, line in enumerate(filas):
+        o = y * w * 3
         for x in range(w):
-            base = x * canales
-            px = base
-            if canales in (2, 4):
-                r, g, b, a = line[base], line[base + 1], line[base + 2], line[base + 3]
+            b0 = x * canales
+            if canales == 3:            # RGB
+                r, g, b = line[b0], line[b0 + 1], line[b0 + 2]
+            elif canales == 4:          # RGBA
+                r, g, b, a = line[b0], line[b0 + 1], line[b0 + 2], line[b0 + 3]
                 r = (r * a + 255 * (255 - a)) // 255
                 g = (g * a + 255 * (255 - a)) // 255
                 b = (b * a + 255 * (255 - a)) // 255
-            else:
-                r = g = b = line[px]
-            o = (y * w + x) * 3
+            elif canales == 2:          # gris con alfa
+                v, a = line[b0], line[b0 + 1]
+                r = g = b = (v * a + 255 * (255 - a)) // 255
+            else:                       # 1 canal: gris
+                r = g = b = line[b0]
             rgb[o], rgb[o + 1], rgb[o + 2] = r, g, b
+            o += 3
     return w, h, rgb
 
 
